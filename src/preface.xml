@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE preface>
+
+<preface xmlns="http://docbook.org/ns/docbook"
+    xml:id="preface"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+    
+<title>正文之前</title>
+
+<section><title>本文内容</title>
+    <para>此文主要内容就是分析start.S这个汇编文件的内容，即ARM上电后的最开始那一段的启动过程。</para>
+</section>
+
+<section><title>本文目标</title>
+    <para>本文的目标是，希望看完此文的读者，可以达到：</para>
+    <orderedlist>
+        <listitem>微观上，对此start.S的每一行，都有了基本的了解</listitem>
+        <listitem>宏观上，对基于ARM核的S3C24X0的CPU的启动过程，有更加清楚的概念</listitem>
+    </orderedlist>
+    <para>这样的目的，是为了读者看完本文后，再去看其他类似的启动相关的源码，能明白需要做什么事情，然后再看别的系统是如何实现相关的内容的，达到一定程度的触类旁通。</para>
+    <para>总体说就是，要做哪些，为何要这么做，如何实现的，即英语中常说的：</para>
+    <itemizedlist>
+        <listitem>do what</listitem>
+        <listitem>why do</listitem>
+        <listitem>how do</listitem>
+    </itemizedlist>
+    <para>此三方面都清楚理解了，那么也才能算真正懂了。</para>
+</section>
+
+<section><title>代码来源</title>
+    <para>所用代码来自TQ2440官网，天嵌的bbs上下载下来的uboot中的源码：</para>
+    <para><emphasis>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\cpu\arm920t\start.S</emphasis></para>
+    <para>下载地址为：<ulink url="http://bbs.embedsky.net/viewthread.php?tid=859" >2010年6月 最新TQ2440光盘下载 （Linux内核，WinCE的eboot，uboot均有更新）</ulink></para>
+</section>
+
+<section><title>阅读此文所要具有的前提知识</title>
+    <para>阅读此文之前，你至少要对TQ2440的板子有个基本的了解，</para>
+    <para>以及要了解开发板初始化的大概要做的事情，比如设置输入频率，设置堆栈等等。</para>
+    <para>另外，至少要有一定的C语言的基础，这样更利于理解汇编代码。</para>
+</section>
+
+<section><title>声明</title>
+    <para>由于水平有限，难免有误，欢迎指正：admin (at) crifan.com</para>
+    <para>欢迎转载，但请注明作者。</para>
+</section>
+
+</preface>

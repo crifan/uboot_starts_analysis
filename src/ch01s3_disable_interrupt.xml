@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01s3_disable_interrupt">
+<title>关闭中断</title>
+
+<sect2 xml:id="set_intmsk"><title>set INTMSK</title>
+    <programlistingco>
+        <programlisting language="c" >
+	/*
+	 * mask all IRQs by setting all bits in the INTMR - default
+	 */
+	mov	r1, #0xffffffff
+	ldr	r0, =INTMSK
+	str	r1, [r0])<co id="co.set_intmsk" linkends="co.note.set_intmsk" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.set_intmsk" arearefs="co.set_intmsk" >
+                <para>上面这几行代码，和前面的很类似，作用很简单，就是将INTMSK寄存器设置为0xffffffff,即，将所有的中端都mask了。</para>
+                <para>关于每一位的定义，其实可以不看的，反正此处都已mask了，不过还是贴出来，以备后用：</para>
+                <figure id="fg.intmsk_reg_bits" ><title>INTMSK寄存器的位域</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/intmsk_reg_bits.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/intmsk_reg_bits.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>此处，关于mask这个词，解释一下。</para>
+                <para>mask这个单词，是面具的意思，而中断被mask了，就是中断被掩盖了，即虽然硬件上中断发生了，但是此处被屏蔽了，所以从效果上来说，就相当于中断被禁止了，硬件上即使发生了中断，CPU也不会去执行对应中断服务程序ISR了。</para>
+                <para>关于中断的内容的详细解释，推荐看这个，解释的很通俗易懂：<ulink url="http://www.crifan.com/switch_arm9_2410_transplant_arm_interrupt_principle_the_error_interrupt_nesting_how_come_the_interrupt_number/">【转】ARM9 2410移植之ARM中断原理, 中断嵌套的误区，中断号的怎么来的</ulink></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="set_intsubmsk"><title>set INTSUBMSK</title>
+    <programlistingco>
+        <programlisting language="c" >
+# if defined(CONFIG_S3C2410)
+	ldr	r1, =0x3ff<co id="co.intsubmsk_0x3ff" linkends="co.note.intsubmsk_0x3ff" />
+	ldr	r0, =INTSUBMSK
+	str	r1, [r0]
+# elif defined(CONFIG_S3C2440)
+	ldr	r1, =0x7fff<co id="co.intsubmsk_0x7fff" linkends="co.note.intsubmsk_0x7fff" />
+	ldr	r0, =INTSUBMSK
+	str	r1, [r0]
+# endif
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.intsubmsk_0x3ff" arearefs="co.intsubmsk_0x3ff" >
+                <para>此处是将2410的INTSUBMSK设置为0x3ff。</para>
+                <para>后经<ulink url="hatemath2005@163.com">HateMath</ulink>的提醒后，去查证，的确此处设置的0x3ff，是不严谨的。</para>
+                <para>因为，根据2410的datasheet中关于INTSUBMSK的解释，bit[10:0]共11位，虽然默认reset的每一位都是1，但是此处对应的mask值，应该是11位全为1=0x7ff。</para>
+                <para>即写成0x3ff，虽然是可以正常工作的，但是却不够严谨的。</para>
+            </callout>
+            <callout id="co.note.intsubmsk_0x7fff" arearefs="co.intsubmsk_0x7fff" >
+                <para>此处CPU是是S3C2440，所以用到0x7fff这段代码。</para>
+                <para>其意思也很容易看懂，就是将INTSUBMSK寄存器的值设置为0x7fff。</para>
+                <para>先贴出对应每一位的含义：</para>
+                <figure id="fg.intsubmsk_reg_bits" ><title>INTSUBMSK寄存器的位域</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/intsubmsk_reg_bits.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/intsubmsk_reg_bits.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>然后我们再来分析对应的0x7fff是啥含义。</para>
+                <para>其实也很简单，意思就是：</para>
+                <para><emphasis>0x7fff = bit[14:0]全是1 = 上表中的全部中断都被屏蔽（mask）。</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="set_clkdivn"><title>set CLKDIVN</title>
+    <programlistingco>
+        <programlisting language="c" >
+#if 0
+	/* FCLK:HCLK:PCLK = 1:2:4 */
+	/* default FCLK is 120 MHz ! */
+	ldr	r0, =CLKDIVN<co id="co.set_clkdivn" linkends="co.note.set_clkdivn" />
+	mov	r1, #3
+	str	r1, [r0]
+#endif
+#endif	/* CONFIG_S3C2400 || CONFIG_S3C2410 || CONFIG_S3C2440 */<co id="co.endif_cfg_s3c24xx" linkends="co.note.endif_cfg_s3c24xx" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.set_clkdivn" arearefs="co.set_clkdivn" >
+                <para>此处，关于CLKDIVN的具体含义，参见下表：</para>
+                <figure id="fg.clkdivn_reg_bits" ><title>INTSUBMSK寄存器的位域</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/clkdivn_reg_bits.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/clkdivn_reg_bits.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>而此处代码被#if 0注释掉了。</para>
+                <para>
+                    <para>问：为何要注释掉，难道想要使用其默认的值，即HDIVN和PDIVN上电后，默认值Initial State，都是0，对应的含义为，FCLK:HCLK:PCLK = <emphasis>1:1:1</emphasis> ???</para>
+                    <para>答：不是，是因为我们在其他地方会去初始化时钟，去设置对应的CLKDIVN，详情参考后面的代码<xref linkend="bl_clock_init" />的部分。</para>
+                </para>
+            </callout>
+            <callout id="co.note.endif_cfg_s3c24xx" arearefs="co.endif_cfg_s3c24xx" >
+                <para>此处是结束上面的#ifdef</para>
+            </callout>                
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="bl"><title>bl</title>
+    <programlistingco>
+        <programlisting language="c" >
+	/*
+	 * we do sys-critical inits only at reboot,
+	 * not when booting from ram!
+	 */
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+	bl<co id="co.bl" linkends="co.note.bl" />	cpu_init_crit
+#endif
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.bl" arearefs="co.bl" >
+                <para>关于bl指令的含义：</para>
+                <para>b指令，是单纯的跳转指令，即CPU直接跳转到某地址继续执行。</para>
+                <para>而BL是Branch with Link，带分支的跳转，而Link指的是Link Register，链接寄存器R14，即lr，所以，bl的含义是，除了包含b指令的单纯的跳转功能，在跳转之前，还把r15寄存器=PC=cpu地址，赋值给r14=lr，然后跳转到对应位置，等要做的事情执行完毕之后，再用</para>
+                <para>mov pc, lr</para>
+                <para>使得cpu再跳转回来，所以整个逻辑就是调用子程序的意思。</para>
+                <para>bl的语法为：</para>
+                <blockquote>
+                    <para>2、  BL指令</para>
+                    <para>BL指令的格式为：</para>
+                    <para>BL{条件} 目标地址</para>
+                    <para>BL 是另一个跳转指令，但跳转之前，会在寄存器R14中保存PC的当前内容，因此，可以通过将R14 的内容重新加载到PC中，来返回到跳转指令之后的那个指令处执行。该指令是实现子程序调用的一个基本但常用的手段。以下指令：</para>
+                    <para>BL   Label  ；当程序无条件跳转到标号Label处执行时，同时将当前的PC值保存到R14中</para>
+                </blockquote>
+                <para>对于上面的代码来说，意思就很清晰了，就是当没有定义CONFIG_SKIP_LOWLEVEL_INIT的时候，就掉转到cpu_init_crit的位置，而在后面的代码cpu_init_crit中，你可以看到最后一行汇编代码就是</para>
+                <para>mov pc, lr，</para>
+                <para>又将PC跳转回来，所以整个的含义就是，调用子程序cpu_init_crit,等cpu_init_crit执行完毕，再返回此处继续执行下面的代码。</para>
+                <para>于此对应地b指令，就只是单纯的掉转到某处继续执行，而不能再通过mov pc, lr跳转回来了。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+</sect1>

@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE chapter
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<chapter 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01_starts_explanation">
+<title>start.S详解</title>
+<abstract></abstract>
+
+<para>下面将详细解释uboot中的start.S中的每一行代码。详细到，每个指令的语法和含义，都进行详细讲解，使得此文读者可以真正搞懂具体的含义，即what。</para>
+<para>以及对于一些相关的问题，深入探究为何要这么做，即why。</para>
+<para>对于uboot的start.S，主要做的事情就是系统的各个方面的初始化。</para>
+<para>从大的方面分，可以分成这几个部分：</para>
+<itemizedlist>
+    <listitem><emphasis>设置CPU模式</emphasis></listitem>
+    <listitem><emphasis>关闭看门狗</emphasis></listitem>
+    <listitem><emphasis>关闭中断</emphasis></listitem>
+    <listitem><emphasis>设置堆栈sp指针</emphasis></listitem>
+    <listitem><emphasis>清除bss段</emphasis></listitem>
+    <listitem><emphasis>异常中断处理</emphasis></listitem>
+</itemizedlist>
+<para>下面来对start.S进行详细分析，看看每一个部分，是如何实现的。</para>
+
+<xi:include href="ch01s1_set_cpu_mode.xml" />
+<xi:include href="ch01s2_close_watchdog.xml" />
+<xi:include href="ch01s3_disable_interrupt.xml" />
+<xi:include href="ch01s4_setup_stack_pointer.xml" />
+<xi:include href="ch01s5_clear_bss.xml" />
+<xi:include href="ch01s6_handle_exception.xml" />
+
+</chapter>

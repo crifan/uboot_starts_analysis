@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE chapter
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<chapter xmlns="http://docbook.org/ns/docbook"
+    xml:id="ch02_starts_summary"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+
+<title>start.S的总结</title>
+<abstract></abstract>
+
+<sect1 xml:id="start_s_summary"><title>start.S各个部分的总结</title>
+    <para>其实关于start.S这个汇编文件，主要做的事情就是系统的各个方面的初始化。</para>
+    <para>关于每个部分，上面具体的代码实现，也都一行行的解释过了，此处不再赘述。</para>
+    <para>此处，只是简单总结一下，其实现的方式，或者其他需要注意的地方。</para>
+    <orderedlist>
+        <listitem><emphasis>设置CPU模式</emphasis>
+            <para>总的来说，就是将CPU设置为SVC模式。</para>
+            <para>至于为何设置CPU是SVC模式，请参见后面章节的详细解释。</para>
+        </listitem>
+        <listitem><emphasis>关闭看门狗</emphasis>
+            <para>就是去设置对应的寄存器，将看门狗关闭。</para>
+            <para>至于为何关闭看门狗，请参见后面章节的详细解释。</para>
+        </listitem>
+
+        <listitem><emphasis>关闭中断</emphasis>
+            <para>关闭中断，也是去设置对应的寄存器，即可。</para>
+        </listitem>
+
+        <listitem><emphasis>设置堆栈sp指针</emphasis>
+            <para>所谓的设置堆栈sp指针，这样的句子，之前听到N次了，但是说实话，一直不太理解，到底更深一层的含义是什么。</para>
+            <para>后来，看了更多的代码，才算有一点点了解。所谓的设置堆栈sp指针，就是设置堆栈，而所谓的设置堆栈，要做的事情，看起来很简单，就只是一个很简单的动作：让sp等于某个地址值，即可。</para>
+            <para>但是背后的逻辑是：</para>
+            <para>首先你自己要搞懂当前系统是如何使用堆栈的，堆栈是向上生长的还是向下生长的。</para>
+            <para>然后知道系统如何使用堆栈之后，给sp赋值之前，你要保证对应的地址空间，是专门分配好了，专门给堆栈用的，保证堆栈的大小相对合适，而不要太小以至于后期函数调用太多，导致堆栈溢出，或者堆栈太大，浪费存储空间，等等。</para>
+            <para>所有这些背后的逻辑，都是要经过一定的编程经验，才更加容易理解其中的含义的。</para>
+            <para>此处，也只是简单说说，更多相关的内容，还是要靠每个人自己多实践，慢慢的更加深入的理解。</para>
+        </listitem>
+        <listitem><emphasis>清除bss段</emphasis>
+            <para>此处很简单，就是将对应bss段，都设置为,0，即清零。</para>
+            <para>其对应的地址空间，就是那些未初始化的全局变量之类的地址。</para>
+        </listitem>
+        <listitem><emphasis>异常中断处理</emphasis>
+            <para>异常中断处理，就是实现对应的常见的那些处理中断的部分内容。</para>
+            <para>说白了就是实现一个个中断函数。uboot在初始化的时候，主要目的只是为了初始化系统，及引导系统，所以，此处的中断处理部分的代码，往往相对比较简单，不是很复杂。</para>
+        </listitem>
+    </orderedlist>
+</sect1>
+
+<sect1 xml:id="uboot_mem_layout"><title>Uboot中的内存的Layout</title>
+    <para>总结了start.S做的事情之后，另外想在此总结一下，uboot中，初始化部分的代码执行后，对应的内存空间，都是如何规划，什么地方放置了什么内容。此部分内容，虽然和start.S没有直接的关系，但是start.S中，堆栈sp的计算等，也和这部分内容有关。</para>
+    <para>下面这部分的uboot的内存的layout，主要是根据：</para>
+    <orderedlist>
+        <listitem>start.S中关于设置堆栈指针的部分的代码
+            <programlisting>
+	/* Set up the stack						    */
+stack_setup:
+	ldr	r0, _TEXT_BASE		/* upper 128 KiB: relocated uboot   */
+	sub	r0, r0, #CFG_MALLOC_LEN	/* malloc area                      */
+	sub	r0, r0, #CFG_GBL_DATA_SIZE /* bdinfo                        */
+
+#ifdef CONFIG_USE_IRQ
+	sub	r0, r0, #(CONFIG_STACKSIZE_IRQ+CONFIG_STACKSIZE_FIQ)
+#endif
+	sub	sp, r0, #12		/* leave 3 words for abort-stack    */
+
+	bl clock_init
+            </programlisting>
+        </listitem>
+        <listitem><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\cpu\arm920t\cpu.c</filename>中的代码
+            <programlisting>
+int cpu_init (void)
+{
+	/*
+	 * setup up stacks if necessary
+	 */
+#ifdef CONFIG_USE_IRQ
+	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
+	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
+    FREE_RAM_END = FIQ_STACK_START - CONFIG_STACKSIZE_FIQ - CONFIG_STACKSIZE;
+    FREE_RAM_SIZE = FREE_RAM_END - PHYS_SDRAM_1;
+#else    
+    FREE_RAM_END = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4 - CONFIG_STACKSIZE;
+    FREE_RAM_SIZE = FREE_RAM_END - PHYS_SDRAM_1;
+#endif
+	return 0;
+}
+            </programlisting>
+        </listitem>
+        <listitem><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\config.mk</filename>中的定义
+            <programlisting>TEXT_BASE = 0x33D00000</programlisting>
+        </listitem>
+    </orderedlist>
+    <para>分析而得出的。</para>
+    <para>uboot的内存的layout，用图表表示就是：</para>
+    <figure id="fg.uboot_mem_layout" ><title>Uboot中的内存的Layout</title>
+        <mediaobject>
+            <imageobject role="html" >
+                <imagedata fileref="images/uboot_mem_layout.png" align="left" scalefit="0" width="100%" />
+            </imageobject>
+            <imageobject role="fo" >
+                <imagedata fileref="images/uboot_mem_layout.png" align="center" scalefit="1" width="100%" />
+            </imageobject>
+        </mediaobject>
+    </figure>
+</sect1>
+
+</chapter>

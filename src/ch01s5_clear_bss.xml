@@ -1,0 +1,585 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01s5_clear_bss">
+<title>清除bss段</title>
+
+<sect2 xml:id="clear_bss_stack"><title>clear_bss</title>
+    <programlistingco>
+        <programlisting language="c" >
+clear_bss:<co id="co._bss_start_end" linkends="co.note._bss_start_end" />
+	ldr	r0, _bss_start<co id="co._bss_start" linkends="co.note._bss_start" />		/* find start of bss segment        */
+	ldr	r1, _bss_end<co id="co._bss_end" linkends="co.note._bss_end" />		/* stop here                        */
+	mov 	r2, #0x00000000		/* clear                            */
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note._bss_start" arearefs="co._bss_start" >
+                <para>此处的_bss_start是：</para>
+                <programlisting>
+.globl _bss_start
+_bss_start:
+	.word __bss_start
+                </programlisting>
+            </callout>
+            <callout id="co.note._bss_end" arearefs="co._bss_end" >
+                <para>而_bss_end,是：</para>
+                <programlisting>
+.globl _bss_end
+_bss_end:
+	.word _end
+                </programlisting>
+            </callout>
+            <callout id="co.note._bss_start_end" arearefs="co._bss_start_end" >
+                <para>对应的，__bss_start和_end，都在前面提到过的那个链接脚本里面：</para>
+                <filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\u-boot.lds</filename>
+                <para>中的：</para>
+                <programlisting>
+	__bss_start = .;
+	.bss : { *(.bss) }
+	_end = .;
+                </programlisting>
+                <para>即bss段的起始地址和结束地址。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="clear_css_loop"><title>clear css loop</title>
+    <programlistingco>
+        <programlisting language="c" >
+<co id="co.clbss_l" linkends="co.note.clbss_l" />clbss_l:str	r2, [r0]		/* clear loop...                    */
+	add	r0, r0, #4
+	cmp	r0, r1
+	ble	clbss_l
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.clbss_l" arearefs="co.clbss_l" >
+                <para>此段代码含义也很清晰，那就是，</para>
+                <para>先将r2,即0x0，存到地址为r0的内存中去，然后r0地址加上4，比较r0地址和r1地址，即比较当前地址是否到了bss段的结束位置，如果le，little or equal，小于或等于，那么就跳到clbss_l,即接着这几个步骤，直到地址超过了bss的_end位置，即实现了将整个bss段，都清零。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="ldr_pc"><title>ldr pc</title>
+    <programlistingco>
+        <programlisting language="c" >
+#if 0<co id="co.omit_if_0" linkends="co.note.omit_if_0" />
+	/* try doing this stuff after the relocation */
+	ldr     r0, =pWTCON
+	mov     r1, #0x0
+	str     r1, [r0]
+
+	/*
+	 * mask all IRQs by setting all bits in the INTMR - default
+	 */
+	mov	r1, #0xffffffff
+	ldr	r0, =INTMR
+	str	r1, [r0]
+
+	/* FCLK:HCLK:PCLK = 1:2:4 */
+	/* default FCLK is 120 MHz ! */
+	ldr	r0, =CLKDIVN
+	mov	r1, #3
+	str	r1, [r0]
+	/* END stuff after relocation */
+#endif
+
+	ldr	pc, _start_armboot
+<co id="co.ldr_pc_start_armboot" linkends="co.note.ldr_pc_start_armboot" />
+_start_armboot:	.word start_armboot
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.omit_if_0" arearefs="co.omit_if_0" >
+                <para>此处忽略已经注释掉的代码</para>
+            </callout>
+            <callout id="co.note.ldr_pc_start_armboot" arearefs="co.ldr_pc_start_armboot" >
+                <para>最后的那两行，意思也很简单，那就是将地址为_start_armboot中的内容，即</para>
+                <para>start_armboot，赋值给PC，即调用start_armboot函数。</para>
+                <para>至此，汇编语言的start.S的整个工作，就完成了。</para>
+                <para>而start_armboot函数，在C文件中：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\EmbedSky.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+void start_armboot (void)
+{
+    ......
+}
+                </programlisting>
+                <para>这就是传说中的，调用第二层次，即C语言级别的初始化了，去初始化各个设备了。</para>
+                <para>其中包括了CPU，内存等，以及串口，正常初始化后，就可以从串口看到uboot的打印信息了。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="cpu_init_crit"><title>cpu_init_crit</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ *************************************************************************
+ *
+ * CPU_init_critical registers
+ *
+ * setup important registers
+ * setup memory timing
+ *
+ *************************************************************************
+ */
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+cpu_init_crit:
+	/*
+	 * flush v4 I/D caches
+	 */
+	mov	r0, #0
+	mcr<co id="co.mcr" linkends="co.note.mcr" />	p15, 0, r0, c7, c7, 0	/* flush v3/v4<co id="co.flush_v3_v4" linkends="co.note.flush_v3_v4" /> cache */
+	mcr	p15, 0, r0, c8, c7, 0	/* flush v4 TLB */<co id="co.flush_v4_tlb" linkends="co.note.flush_v4_tlb" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.mcr" arearefs="co.mcr" >
+                <para>关于mcr的来龙去脉：</para>
+                <blockquote>
+                    <para><ulink url="http://apps.hi.baidu.com/share/detail/32319228" /></para>
+                    <para>ARM 微处理器可支持多达 16 个协处理器，用于各种协处理操作，在程序执行的过程中，每个协处理器只执行针对自身的协处理指令，忽略 ARM 处理器和其他协处理器的指令。ARM 的协处理器指令主要用于 ARM 处理器初始化 ARM 协处理器的数据处理操作，以及在ARM 处理器的寄存器和协处理器的寄存器之间传送数据，和在 ARM 协处理器的寄存器和存储器之间传送数据。 ARM 协处理器指令包括以下 5 条：</para>
+                    <orderedlist>
+                        <listitem>CDP 协处理器数操作指令</listitem>
+                        <listitem>LDC 协处理器数据加载指令</listitem>
+                        <listitem>STC 协处理器数据存储指令</listitem>
+                        <listitem>MCR ARM 处理器寄存器到协处理器寄存器的数据传送指令</listitem>
+                        <listitem>MRC 协处理器寄存器到ARM 处理器寄存器的数据传送指令</listitem>
+                    </orderedlist>
+                    <para>......</para>
+                    <para>CP15系统控制协处理器</para>
+                    <para>CP15 —系统控制协处理器 （the system control coprocessor）他通过协处理器指令MCR和MRC提供具体的寄存器来配置和控制caches、MMU、保护系统、配置时钟模式（在bootloader时钟初始化用到）</para>
+                    <para>CP15的寄存器只能被MRC和MCR（Move to Coprocessor from ARM Register ）指令访问</para>
+                </blockquote>
+                <para>一些要说明的内容，见下：:</para>
+                <blockquote>
+                    <para><ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0151c/ARM920T_TRM1_S.pdf" /></para>
+                    <para>you can only access CP15 registers with MRC and MCR instructions in a privileged mode. The assembler for these instructions is:</para>
+                    <para>MCR/MRC{cond} P15,opcode_1,Rd,CRn,CRm,opcode_2</para>
+                    <para>The CRn field of MRC and MCR</para>
+                    <para>instructions specifies the coprocessor register to access. The CRm field and opcode_2 fields specify a particular action when addressing registers. The L bit distinguishes between an MRC (L=1) and an MCR (L=0).</para>
+                    <para>Note:</para>
+                    <para>Attempting to read from a nonreadable register, or to write to a nonwritable register causes unpredictable results.</para>
+                    <para>The opcode_1, opcode_2, and CRm fields should be zero, except when the values specified are used to select the desired operations, in all instructions that access CP15. </para>
+                    <para>Using other values results in unpredictable behavior</para>
+                </blockquote>
+                <para>CP15有很多个寄存器，分别叫做寄存器0(Register 0)，到寄存器15（Register 15），</para>
+                <para>每个寄存器分别控制不同的功能，而且有的是只读，有的是只写，有的是可读写。</para>
+                <para>而且这些寄存器的含义，随着版本ARM内核版本变化而不断扩展，详情请参考：<ulink url="http://www.heyrick.co.uk/assembler/coprocmnd.html">Processor setup via co-processor 15 and about co-processors</ulink></para>
+                <para>其中，根据我们此处关心的内容，摘录部分内容如下：</para>
+                <blockquote>
+                    <para>ARM 710</para>
+                    <itemizedlist>
+                        <listitem>Register 7 - IDC flush (write only)
+                            <para>Any data written to this location will cause the IDC (Instruction/Data cache) to be flushed.</para>
+                        </listitem>
+                    </itemizedlist>
+                    <para>......</para>
+                    <para>StrongARM SA110</para>
+                    <para>......</para>
+                    <itemizedlist>
+                        <listitem>Register 7 - Cache control (write only)
+                            <para>Any data written to this location will cause the selected cache to be flushed. </para>
+                            <para>  The OPC_2 and CRm co-processor fields select which cache</para>
+                            <para>  operation should occur:</para>
+                            <para>    Function          OPC_2    CRm     Data</para>
+                            <para  id="flash_i_d_line"  xreflabel="Register 7中的Flash I+D">    <emphasis>Flush I + D      %0000    %0111</emphasis>   -</para>
+                            <para>    Flush I           %0000    %0101   -</para>
+                            <para>    Flush D           %0000    %0110   -</para>
+                            <para>    Flush D single   %0001    %0110   Virtual address</para>
+                            <para>    Clean D entry    %0001    %1010   Virtual address</para>
+                            <para>    Drain write buf. %0100    %1010  -</para>
+                        </listitem>
+                        <listitem>Register 8 - TLB operations (write only)
+                            <para>Any data written to this location will cause the selected TLB flush operation. </para>
+                            <para>  The OPC_2 and CRm co-processor fields select which cache</para>
+                            <para>  operation should occur:</para>
+                            <para>    Function         OPC_2    CRm    Data</para>
+                            <para>    <emphasis>Flush I + D     %0000    %0111</emphasis>  -</para>
+                            <para>    Flush I          %0000    %0101  -</para>
+                            <para>    Flush D          %0000    %0110  -</para>
+                            <para>    Flush D single  %0001    %0110  Virtual address”</para>
+                        </listitem>
+                    </itemizedlist>
+                </blockquote>
+                <para>而MCR的详细的语法为：</para>
+                <blockquote>
+                    <para>MCR指令</para>
+                    <para>MCR指令将ARM处理器的寄存器中的数据传送到协处理器寄存器中。如果协处理器不能成功地执行该操作，将产生未定义的指令异常中断。</para>
+                    <para>指令语法格式</para>
+                    <para>MCR{&lt;cond&gt;} &lt;p&gt;，&lt; opcode_1&gt;，&lt;Rd&gt;,&lt;CRn&gt;,&lt;CRm&gt;{,&lt;opcode_2&gt;}</para>
+                    <para>MCR{&lt;cond&gt;} p15，0，&lt;Rd&gt;,&lt;CRn&gt;,&lt;CRm&gt;{,&lt;opcode_2&gt;}</para>
+                    <para>其中</para>
+                    <itemizedlist>
+                        <listitem>&lt;cond&gt;
+                            <para>指令执行的条件码.当&lt;cond&gt;忽略时指令为无条件执行。</para>
+                        </listitem>
+                        <listitem>&lt;opcode_1&gt;
+                            <para>协处理器将执行的操作的操作码。对于CP15协处理器来说，&lt;opcode_1&gt;永远为0b000，当&lt;opcode_1&gt;不为0b000时，该指令操作结果不可预知。</para>
+                        </listitem>
+                        <listitem>&lt;Rd&gt;
+                            <para>作为源寄存器的ARM寄存器，其值将被传送到协处理器寄存器中</para>
+                        </listitem>
+                        <listitem>&lt;CRn&gt;
+                            <para>作为目标寄存器的协处理器寄存器，其编号可能是C0，C1，…，C15。</para>
+                        </listitem>
+                    </itemizedlist>
+                    <para>&lt;CRm&gt;和&lt;opcode_2&gt;两者组合决定对协处理器寄存器进行所需要的操作，如果没有指定，则将为&lt;CRm&gt;为C0，opcode_2为0</para>
+                </blockquote>
+                <para>对照上面的那行代码：</para>
+                <programlisting>mcr	p15, 0, r0, c7, c7, 0	/* flush v3/v4 cache */</programlisting>
+                <para>可以看出，其中</para>
+                <para><emphasis>rd为r0=0</emphasis></para>
+                <para><emphasis>CRn为C7</emphasis></para>
+                <para><emphasis>CRm为C7</emphasis></para>
+                <para>对于这行代码的作用，以此按照语法，来一点点解释如下：</para>
+                <para>首先，mcr做的事情，其实很简单，就是“<emphasis>ARM处理器的寄存器中的数据传送到协处理器寄存器中</emphasis>”，</para>
+                <para>此处即是，将ARM的寄存器r0中的数据，此时r0=0,所以就是把0这个数据，传送到协处理器CP15中。</para>
+                <para>而对应就是写入到“<emphasis>&lt;CRn&gt;</emphasis>”这个“<emphasis>目标寄存器的协处理器寄存器</emphasis>”，此处CRn为C7，即将0写入到寄存器7（Register 7）中去。</para>
+                <para>而上面关于Register 7的含义中也说了，“Any data written to this location will cause the selected cache to be flushed”，即你往这个寄存器7中写入任何数据，都会导致对应的缓存被清空。而到底那个缓存被清空呢，即我们这行指令</para>
+                <programlisting>mcr	p15, 0, r0, c7, c7, 0</programlisting>
+                <para>起了什么作用呢</para>
+                <para>那是由“<emphasis>&lt;CRm&gt;和&lt;opcode_2&gt;两者组合决定</emphasis>”的。</para>
+                <para>而此处CRm为C7，opcode_2为0，而对于C7和0的组合的作用，参见上面的那个表中<xref linkend="flash_i_d_line" />那一行，</para>
+                <para>当opcode_2为0，CRm为0111=7，就是我们要找的，其作用是“<emphasis>Flush I + D</emphasis>”，即清空指令缓存I Cache和数据缓存D Cache。</para>
+                <para>根据该表，同理，如果是opcode_2=0，而CRm=0101b=5，那么对应的就是去“<emphasis>Flush I</emphasis>”，即只清除指令缓存I Cache了。</para>
+                <para>而对应的指令也就是</para>
+                <programlisting>mcr	p15, 0, r0, c7, c5, 0</programlisting>
+                <para>了。</para>
+            </callout>
+
+            <callout id="co.note.flush_v3_v4" arearefs="co.flush_v3_v4" >
+                <para>此注释说此行代码的作用是，清理v3或v4的缓存</para>
+                <para>其中v4，我们很好理解，因为我们此处的CPU是ARM920T的核心，是属于ARM V4的，而为何又说，也可以清除v3的cache呢？</para>
+                <para>那是因为，本身这些寄存器位域的定义，都是向下兼容的，参见上面引用的内容，也写到了：</para>
+                <blockquote>
+                    <para>ARM 710</para>
+                    <itemizedlist>
+                        <listitem>Register 7 - IDC flush (write only)
+                            <para>Any data written to this location will cause the IDC (Instruction/Data cache) to be flushed.</para>
+                        </listitem>
+                    </itemizedlist>
+                </blockquote>
+                <para>即，对于ARM7的话，你写同样的这行代码</para>
+                <programlisting>mcr	p15, 0, r0, c7, c7, 0</programlisting>
+                <para>也还是向register 7中写入了数据0，这也同样满足了其所说的“Any data written to this location”，也会产生同样的效果“cause the IDC (Instruction/Data cache) to be flushed”。</para>
+            </callout>
+            
+            <callout id="co.note.flush_v4_tlb" arearefs="co.flush_v4_tlb" >
+                <para>同理，可以看出此行是去操作寄存器8，而对应的各个参数为：</para>
+                <para><emphasis>rd为r0=0</emphasis></para>
+                <para><emphasis>CRn为C8</emphasis></para>
+                <para><emphasis>CRm为C7</emphasis></para>
+                <para><emphasis>opcode_2为0</emphasis></para>
+                <para>对照寄存器8的表：</para>
+                <blockquote>
+                    <itemizedlist>
+                        <listitem>Register 8 - TLB operations (write only)
+                            <para>Any data written to this location will cause the selected TLB flush operation. </para>
+                            <para>  The OPC_2 and CRm co-processor fields select which cache</para>
+                            <para>  operation should occur:</para>
+                            <para>    Function         OPC_2    CRm    Data</para>
+                            <para>    <emphasis>Flush I + D     %0000    %0111</emphasis>  -</para>
+                            <para>    Flush I          %0000    %0101  -</para>
+                            <para>    Flush D          %0000    %0110  -</para>
+                            <para>    Flush D single  %0001    %0110  Virtual address”</para>
+                        </listitem>
+                    </itemizedlist>
+                </blockquote>
+                <para>其含义为：</para>
+                <para>向寄存器8中写入数据，会导致对应的TLB被清空。具体是哪个TLB，由opcode_2和CRm组合决定，</para>
+                <para>此处opcode_2为0，CRm为7=0111b，所以对应的作用是“<emphasis>Flush I + D</emphasis>”，即清空指令和数据的TLB。</para>
+                <tip>
+                    <para>上述两行代码，其实都可以ARM的官方网站上面找到：</para>
+                    <blockquote>
+                        <para><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0184b/Chdcfejb.html" /></para>
+                        <informaltable>
+                            <tgroup cols="3" >
+                                <thead>
+                                    <row><entry>Function </entry><entry>Rd </entry><entry>Instruction</entry></row>
+                                </thead>
+                                <tbody>
+                                    <row><entry>Invalidate ICache and DCache</entry><entry>SBZ</entry><entry>MCR p15,0,Rd,c7,c7,0</entry></row>
+                                </tbody>
+                            </tgroup>
+                        </informaltable>
+                        <para><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0184b/Chdifbjc.html" /></para>
+                        <informaltable>
+                            <tgroup cols="3" >
+                                <thead>
+                                    <row><entry>Function </entry><entry>Rd </entry><entry>Instruction</entry></row>
+                                </thead>
+                                <tbody>
+                                    <row><entry>Invalidate TLB(s)</entry><entry>SBZ</entry><entry>MCR p15,0,Rd,c8,c7,0</entry></row>
+                                </tbody>
+                            </tgroup>
+                        </informaltable>
+                    </blockquote>
+                </tip>
+            </callout>
+
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="disable_mmu"><title>disable MMU</title>
+    <programlistingco>
+        <programlisting language="c" >
+	/*
+	 * disable MMU stuff and caches
+	 */
+	mrc	p15, 0, r0, c1, c0, 0<co id="co.disable_mmu_cache" linkends="co.note.disable_mmu_cache" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.disable_mmu_cache" arearefs="co.disable_mmu_cache" >
+                <para>此处，对应的值为：</para>
+                <para><emphasis>rd为r0=0</emphasis></para>
+                <para><emphasis>CRn为C1</emphasis></para>
+                <para><emphasis>CRm为C0</emphasis></para>
+                <para><emphasis>opcode_2为0</emphasis></para>
+                <para>即，此行代码是将r0的值，即0，写入到CP15的寄存器1中。</para>
+                <para>寄存器1的相关的定义为：</para>
+                <blockquote>
+                    <para><ulink url="http://www.heyrick.co.uk/assembler/coprocmnd.html" /></para>
+                    <para>StrongARM SA110</para>
+                    <itemizedlist>
+                        <listitem>Register 1 - Control (read/write)
+                            <para>All values set to 0 at power-up.</para>
+                            <itemizedlist>
+                                <listitem>Bit  0 - On-chip MMU turned off (0) or on (1)</listitem>
+                                <listitem>Bit  1 - Address alignment fault disabled (0) or enabled (1)</listitem>
+                                <listitem>Bit  2 - Data cache turned off (0) or on (1)</listitem>
+                                <listitem>Bit  3 - Write buffer turned off (0) or on (1)</listitem>
+                                <listitem>Bit  7 - Little-endian operation if 0, big-endian if 1</listitem>
+                                <listitem>Bit  8 - System bit - controls the MMU permission system</listitem>
+                                <listitem>Bit  9 - ROM bit - controls the MMU permission system</listitem>
+                                <listitem>Bit 12 - Instruction cache turned off (0) or on (1)”</listitem>
+                            </itemizedlist>
+                        </listitem>
+                    </itemizedlist>
+                </blockquote>
+                <para>所以，对应内容就是，向bit[CRm]中写入opcode_2，即向bit[0]写入0，对应的作用为“<emphasis>On-chip MMU turned off</emphasis>”，即关闭MMU。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="clear_bits"><title>clear bits</title>
+    <programlistingco>
+        <programlisting language="c" >
+	<co id="co.clear_bits" linkends="co.note.clear_bits" />bic	r0, r0, #0x00002300	@ clear bits 13, 9:8 (--V- --RS)<co id="co.clear_v_rs" linkends="co.note.clear_v_rs" />
+	bic	r0, r0, #0x00000087	@ clear bits 7, 2:0 (B--- -CAM)<co id="co.clear_b_cm" linkends="co.note.clear_b_cm" />
+	orr	r0, r0, #0x00000002	@ set bit 2 (A) Align<co id="co.orr_align" linkends="co.note.orr_align" />
+	orr	r0, r0, #0x00001000	@ set bit 12 (I) I-Cache<co id="co.orr_icache" linkends="co.note.orr_icache" />
+	mcr	p15, 0, r0, c1, c0, 0<co id="co.mcr_p15" linkends="co.note.mcr_p15" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.clear_bits" arearefs="co.clear_bits" >
+                <para>此处几行代码，注释中写的也很清楚了，就是去清楚对应的位和设置对应的位，具体位域的含义见下：</para>
+                <blockquote>
+                    <para><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0184b/Chdifbjc.html" /></para>
+                    <table id="tbl.ctrl_reg1_bits" ><title>控制寄存器1的位域含义</title>
+                        <tgroup cols="4" >
+                            <colspec colnum="1" colname="col1" colwidth="1*" />
+                            <colspec colnum="2" colname="col2" colwidth="1*" />
+                            <colspec colnum="3" colname="col3" colwidth="2*" />
+                            <colspec colnum="4" colname="col4" colwidth="4*" />
+                            
+                            <thead>
+                                <row><entry>Register bits</entry><entry>Name</entry><entry>Function</entry><entry>Value</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry>31</entry><entry>iA bit</entry><entry>Asynchronous clock select</entry><entry>See <ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0151c/I66051.html#Cegbgbae">Table 2.11</ulink></entry></row>
+                                <row><entry>30</entry><entry>nF bit</entry><entry>notFastBus select</entry><entry>See <ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0151c/I66051.html#Cegbgbae">Table 2.11</ulink></entry></row>
+                                <row><entry>29:15</entry><entry>-</entry><entry>Reserved</entry><entry><literallayout>Read = Unpredictable
+Write = Should be zero</literallayout></entry></row>
+                                <row><entry>14</entry><entry>RR bit</entry><entry>Round robin replacement</entry><entry><literallayout>0 = Random replacement
+1 = Round-robin replacement</literallayout></entry></row>
+                                <row><entry>13</entry><entry>V bit</entry><entry>Base location of exception registers</entry><entry><literallayout>0 = Low addresses = 0x00000000
+1 = High addresses = 0xFFFF0000</literallayout></entry></row>
+                                <row><entry>12</entry><entry>I bit</entry><entry>ICache enable</entry><entry><literallayout>0 = ICache disabled
+1 = ICache enabled</literallayout></entry></row>
+                                <row><entry>11:10</entry><entry>-</entry><entry>Reserved</entry><entry><literallayout>Read = 00
+Write = 00</literallayout></entry></row>
+                                <row><entry>9</entry><entry>R bit</entry><entry>ROM protection</entry><entry>This bit modifies the MMU protection system. See <ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0151c/I273867.html">Domain access control</ulink></entry></row>
+                                <row><entry>8</entry><entry>S bit</entry><entry>System protection</entry><entry>This bit modifies the MMU protection system. See <ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0151c/I273867.html">Domain access control</ulink></entry></row>
+                                <row><entry>7</entry><entry>B bit</entry><entry>Endianness</entry><entry><literallayout>0 = Little-endian operation
+1 = Big-endian operation</literallayout></entry></row>
+                                <row><entry>6:3</entry><entry>-</entry><entry>Reserved</entry><entry><literallayout>Read = 1111
+Write = 1111</literallayout></entry></row>
+                                <row><entry>2</entry><entry>C bit</entry><entry>DCache enable</entry><entry><literallayout>0 = DCache disabled
+1 = DCache enabled</literallayout></entry></row>
+                                <row><entry>1</entry><entry>A bit</entry><entry>Alignment fault enable</entry><entry>Data address alignment fault checking<literallayout>0 = Fault checking disabled
+1 = Fault checking enabled</literallayout></entry></row>
+                                <row><entry>0</entry><entry>M bit</entry><entry>MMU enable</entry><entry><literallayout>0 = MMU disabled
+1 = MMU enabled</literallayout></entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                    <table id="tbl.clock_mode" ><title>时钟模式</title>
+                        <tgroup cols="3" >
+                            <colspec colnum="1" colname="col1" colwidth="2*" />
+                            <colspec colnum="2" colname="col2" colwidth="1*" />
+                            <colspec colnum="3" colname="col3" colwidth="1*" />
+                            
+                            <thead>
+                                <row><entry>Clocking mode</entry><entry>iA</entry><entry>nF</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry>FastBus mode</entry><entry>0</entry><entry>0</entry></row>
+                                <row><entry>Synchronous</entry><entry>0</entry><entry>1</entry></row>
+                                <row><entry>Reserved</entry><entry>1</entry><entry>0</entry></row>
+                                <row><entry>Asynchronous</entry><entry>1</entry><entry>1</entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                    
+                    <para><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0151c/I273867.html" /></para>
+                    <para>Domain access control</para>
+                    <table id="tbl.domain_access_ctrl" ><title>关于访问控制位在域访问控制寄存器中的含义</title>
+                        <tgroup cols="3" >
+                            <colspec colnum="1" colname="col1" colwidth="1*" />
+                            <colspec colnum="2" colname="col2" colwidth="1*" />
+                            <colspec colnum="3" colname="col3" colwidth="4*" />
+                            
+                            <thead>
+                                <row><entry>Value</entry><entry>Meaning</entry><entry>Description</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry>00</entry><entry>No access</entry><entry>Any access generates a domain fault</entry></row>
+                                <row><entry>01</entry><entry>Client </entry><entry>Accesses are checked against the access permission bits in the section or page descriptor</entry></row>
+                                <row><entry>10</entry><entry>Reserved</entry><entry>Reserved. Currently behaves like the no access mode</entry></row>
+                                <row><entry>11</entry><entry>Manager</entry><entry>Accesses are not checked against the access permission bits so a permission fault cannot be generated</entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                    <para><xref linkend="tbl.ap_bits" />shows how to interpret the Access Permission (AP) bits and how their interpretation is dependent on the S and R bits (control register bits 8 and 9)</para>
+                    <table id="tbl.ap_bits" ><title>关于访问允许(AP)位的含义</title>
+                        <tgroup cols="6" >
+                            <colspec colnum="1" colname="col1" colwidth="1*" />
+                            <colspec colnum="2" colname="col2" colwidth="1*" />
+                            <colspec colnum="3" colname="col3" colwidth="1*" />
+                            <colspec colnum="4" colname="col4" colwidth="2*" />
+                            <colspec colnum="5" colname="col5" colwidth="2*" />
+                            <colspec colnum="6" colname="col6" colwidth="4*" />
+                            
+                            <thead>
+                                <row><entry>AP</entry><entry>S</entry><entry>R</entry><entry>Supervisor permissions</entry><entry>User permissions</entry><entry>Description</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry>00</entry><entry>0</entry><entry>0</entry><entry>No access</entry><entry>No access </entry><entry>Any access generates a permission fault</entry></row>
+                                <row><entry>00</entry><entry>1</entry><entry>0</entry><entry>Read-only</entry><entry>No access</entry><entry>Only Supervisor read permitted</entry></row>
+                                <row><entry>00</entry><entry>0</entry><entry>1</entry><entry>Read-only</entry><entry>Read-only</entry><entry>Any write generates a permission fault</entry></row>
+                                <row><entry>00</entry><entry>1</entry><entry>1</entry><entry>Reserved</entry><entry>-</entry><entry>-</entry></row>
+                                <row><entry>01</entry><entry>x</entry><entry>x</entry><entry>Read/write</entry><entry>No access </entry><entry>Access allowed only in Supervisor mode</entry></row>
+                                <row><entry>10</entry><entry>x</entry><entry>x</entry><entry>Read/write</entry><entry>Read-only </entry><entry>Writes in User mode cause permission fault</entry></row>
+                                <row><entry>11</entry><entry>x</entry><entry>x</entry><entry>Read/write</entry><entry>Read/write</entry><entry>All access types permitted in both modes</entry></row>
+                                <row><entry>xx</entry><entry>1</entry><entry>1</entry><entry>Reserved</entry><entry>-</entry><entry></entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                </blockquote>
+            </callout>
+            <callout id="co.note.clear_v_rs" arearefs="co.clear_v_rs" >
+                <para>此行作用是：</para>
+                <orderedlist>
+                    <listitem>清除bit[13]
+                        <para>Base location of exception register(异常寄存器基地址)</para>
+                        <para>0 = Low address = 0x0000 0000</para>
+                    </listitem>
+                    <listitem>清除bit[9]和bit[8]
+                        <para>此处不是很懂，待后续深入了解。</para>
+                        <para>目前的理解是：</para>
+                        <para>不论是Supervisor还是user，谁都不能访问，否则就出现权限错误“Any access generates a permission fault”</para>
+                    </listitem>
+                </orderedlist>
+            </callout>
+            <callout id="co.note.clear_b_cm" arearefs="co.clear_b_cm" >
+                <para>此行作用是：</para>
+                <orderedlist>
+                    <listitem>清除bit[7]
+                        <para>使用little endian</para>
+                    </listitem>
+                    <listitem>清除bit[2-0]
+                        <para>DCache disabled,关闭Dcache；</para>
+                        <para>Alignment Fault checking disabled，关闭地址对齐的错误检查；</para>
+                        <para>MMU disabled，关闭MMU。</para>
+                    </listitem>
+                </orderedlist>
+            </callout>
+            <callout id="co.note.orr_align" arearefs="co.orr_align" >
+                <para>此行作用是：</para>
+                <orderedlist>
+                    <listitem>设置bit[1]
+                        <para>“Enable Data address alignment fault checking”打开数据地址对齐的错误检查，即如果数据地址为非法（奇数？）地址，就报错。</para>
+                    </listitem>
+                </orderedlist>
+            </callout>
+            <callout id="co.note.orr_icache" arearefs="co.orr_icache" >
+                <para>此行作用是：</para>
+                <orderedlist>
+                    <listitem>设置bit[12]
+                        <para>开启指令缓存I cache。</para>
+                    </listitem>
+                </orderedlist>
+            </callout>
+            <callout id="co.note.mcr_p15" arearefs="co.mcr_p15" >
+                <para>mcr指令，将刚才设置的r0的值，再写入到寄存器1中。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="bl_lowlevel_init"><title>bl lowlevel_init</title>
+    <programlistingco>
+        <programlisting language="c" >
+	/*
+	 * before relocating, we have to setup RAM timing
+	 * because memory timing is board-dependend, you will
+	 * find a lowlevel_init.S in your board directory.
+	 */
+	mov	ip, lr
+	bl	lowlevel_init
+	mov	lr, ip<co id="co.move_lr_ip" linkends="co.note.move_lr_ip" />
+	mov	pc, lr<co id="co.move_pc_lr" linkends="co.note.move_pc_lr" />
+#endif /* CONFIG_SKIP_LOWLEVEL_INIT */<co id="co.cfg_lowlevel_init" linkends="co.note.cfg_lowlevel_init" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.move_lr_ip" arearefs="co.move_lr_ip" >
+                <para>将lr的值给ip，即指令指针r12，此处之所以要保存一下lr是因为此处是在子函数cpu_init_crit中，lr已经保存了待会用于返回主函数的地址，即上次调用时候的pc的值，而此处如果在子函数cpu_init_crit中继续调用其他子函数lowlevel_init,而不保存lr的话，那么调用完lowlevel_init返回来时候，就丢失了cpu_init_crit要返回的位置。</para>
+                <para>说白了就是，每次你要调用函数之前，你自己要确保是否已经正确保存了lr的值，要保证函数调用完毕后，也能正常返回。当然，如果你此处根本不需要返回，那么就不用去保存lr的值了。</para>
+            </callout>
+            <callout id="co.note.move_pc_lr" arearefs="co.move_pc_lr" >
+                <para>典型的子函数调用，通过将lr的值赋值给pc，实现函数调用完成后而返回的。</para>
+            </callout>
+            <callout id="co.note.cfg_lowlevel_init" arearefs="co.cfg_lowlevel_init" >
+                <para>这里，其是和前面的代码：</para>
+                <programlisting>
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+	bl	cpu_init_crit
+#endif
+                </programlisting>
+                <para>是对应的。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+</sect1>

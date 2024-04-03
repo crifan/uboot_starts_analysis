@@ -1,0 +1,656 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01s1_set_cpu_mode">
+<title>设置CPU模式</title>
+
+<sect2 xml:id="globl"><title>globl</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ *  armboot - Startup Code for ARM920 CPU-core
+ *
+ *  Copyright (c) 2001	Marius Gr鰃er &lt;mag@sysgo.de&gt;
+ *  Copyright (c) 2002	Alex Z黳ke &lt;azu@sysgo.de&gt;
+ *  Copyright (c) 2002	Gary Jennejohn &lt;gj@denx.de&gt;
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+
+#include &lt;config.h&gt;
+#include &lt;version.h&gt;
+
+
+/*
+ *************************************************************************
+ *
+ * Jump vector table as in table 3.1 in [1]
+ *
+ *************************************************************************
+ */
+
+
+.globl<co id="co.globl" linkends="co.note.globl" /> _start
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.globl" arearefs="co.globl" >
+                <para>globl是个关键字，对应含义为：</para>
+                <ulink url="http://re-eject.gbadev.org/files/GasARMRef.pdf" />
+                <table id="tbl.global_synopsis" ><title>global的语法</title>
+                    <tgroup cols="4" >
+                        <colspec colnum="1" colname="col1" colwidth="1*" />
+                        <colspec colnum="2" colname="col2" colwidth="1*" />
+                        <colspec colnum="3" colname="col3" colwidth="1*" />
+                        <colspec colnum="4" colname="col4" colwidth="1*" />
+                        
+                        <thead>
+                            <row><entry>Directive</entry><entry>Description</entry><entry>Syntax</entry><entry>Example</entry></row>
+                        </thead>
+                        
+                        <tbody>
+                            <row><entry><emphasis>.global</emphasis></entry><entry>Makes <emphasis>symbol</emphasis> visible to the linker</entry><entry>.global symbol</entry><entry><emphasis>.global</emphasis> MyAsmFunc</entry></row>
+                            <row><entry><emphasis>.globl</emphasis></entry><entry>Same as <emphasis>.global</emphasis></entry><entry>.globl symbol</entry><entry><emphasis>.globl</emphasis> MyOtherAsmFunc</entry></row>
+                        </tbody>
+                    </tgroup>
+                </table>
+                <para>所以，意思很简单，就是相当于C语言中的Extern，声明此变量，并且告诉链接器此变量是全局的，外部可以访问</para>
+                <para>所以，你可以看到</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\u-boot.lds</filename></para>
+                <para>中，有用到此变量:</para>
+                <para><emphasis>ENTRY(_start)</emphasis></para>
+                <para>即指定入口为_start,而由下面的_start的含义可以得知，_start就是整个start.S的最开始，即整个uboot的代码的开始。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="_start"><title>_start</title>
+    <programlistingco>
+        <programlisting language="c" >
+_start<co id="co._start" linkends="co.note._start" />:	b       reset
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note._start" arearefs="co._start" >
+                <para>_start后面加上一个冒号’:’，表示其是一个标号Label，类似于C语言goto后面的标号。</para>
+                <para>而同时，_start的值，也就是这个代码的位置了，此处即为代码的最开始，相对的0的位置。</para>
+                <para>而此处最开始的相对的0位置，在程序开始运行的时候，如果是从NorFlash启动，那么其地址是0，</para>
+                <para><emphasis>_stat=0</emphasis></para>
+                <para>如果是重新relocate代码之后，就是我们定义的值了，即，在</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\config.mk</filename></para>
+                <para>中的：</para>
+                <para>TEXT_BASE = 0x33D00000</para>
+                <para>表示是代码段的基地址，即</para>
+                <para><emphasis>_start=TEXT_BASE=0x33D00000</emphasis></para>
+                <para></para>
+                <para>关于标号的语法解释:</para>
+                <blockquote>
+                    <para><ulink url="http://sourceware.org/binutils/docs-2.20/as/Labels.html#Labels" /></para>
+                    <para>A label is written as a symbol immediately followed by a colon `:'. The symbol then represents the current value of the active location counter, and is, for example, a suitable instruction operand. You are warned if you use the same symbol to represent two different locations: the first definition overrides any other definitions. </para>
+                </blockquote>
+                <para>而_start标号后面的:</para>
+                <programlisting>b       reset</programlisting>
+                <para>就是跳转到对应的标号为reset的位置。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="ldr"><title>ldr</title>
+    <programlistingco>
+        <programlisting language="c" >
+	ldr<co id="co.ldr" linkends="co.note.ldr" />	pc, _undefined_instruction
+	ldr	pc, _software_interrupt
+	ldr	pc, _prefetch_abort
+	ldr	pc, _data_abort
+	ldr	pc, _not_used
+	ldr	pc, _irq
+	ldr	pc, _fiq
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.ldr" arearefs="co.ldr" >
+                <para>ldr命令的语法为：</para>
+                <blockquote>
+                    <para><ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.dui0206hc/DUI0206HC_rvct_linker_and_utilities_guide.pdf" /></para>
+                    <figure id="fg.ldr_syntax" ><title>LDR指令的语法</title>
+                        <mediaobject>
+                            <imageobject role="html" >
+                                <imagedata fileref="images/ldr_syntax.jpg" align="left" scalefit="0" width="100%" />
+                            </imageobject>
+                            <imageobject role="fo" >
+                                <imagedata fileref="images/ldr_syntax.jpg" align="center" scalefit="1" width="100%" />
+                            </imageobject>
+                        </mediaobject>
+                    </figure>
+                </blockquote>
+                <blockquote>
+                    <para><ulink url="http://wenku.baidu.com/view/f7cc280102020740be1e9bea.html" /></para>
+                    <para>LDR指令的格式为：</para>
+                    <para>LDR{条件} 目的寄存器，&lt;存储器地址&gt;</para>
+                    <para>LDR指令用于从存储器中将一个32位的字数据传送到目的寄存器中。该指令通常用于从存储器中读取32位的字数据到通用寄存器，然后对数据进行处理。当程序计数器PC作为目的寄存器时，指令从存储器中读取的字数据被当作目的地址，从而可以实现程序流程的跳转。该指令在程序设计中比较常用，且寻址方式灵活多样，请读者认真掌握。</para>
+                    <para>指令示例：</para>
+                    <para><emphasis>LDR R0，[R1]</emphasis>        ；将存储器地址为R1的字数据读入寄存器R0。</para>
+                    <para><emphasis>LDR R0，[R1，R2]</emphasis>    ；将存储器地址为R1+R2的字数据读入寄存器R0。</para>
+                    <para><emphasis>LDR R0，[R1，＃8]</emphasis>   ；将存储器地址为R1+8的字数据读入寄存器R0。</para>
+                    <para><emphasis>LDR R0，[R1，R2]！</emphasis>  ；将存储器地址为R1+R2的字数据读入寄存器R0,并将新地址R1＋R2写入R1。</para>
+                    <para><emphasis>LDR R0，[R1，＃8]！</emphasis> ；将存储器地址为R1+8的字数据读入寄存器R0，并将新地址R1＋8写入R1。</para>
+                    <para><emphasis>LDR  R0，[R1]，R2</emphasis>   ；将存储器地址为R1的字数据读入寄存器R0，并将新地址R1＋R2写入R1。</para>
+                    <para><emphasis>LDR  R0，[R1，R2，LSL＃2]！</emphasis> ；将存储器地址为R1＋R2×4的字数据读入寄存器R0，并将新地址R1＋R2×4写入R1。</para>
+                    <para><emphasis>LDRR0，[R1]，R2，LSL＃2</emphasis>     ；将存储器地址为R1的字数据读入寄存器R0，并将新地址R1＋R2×4写入R1。”</para>
+                </blockquote>
+                <blockquote>
+                    <para><ulink url="http://www.pczpg.com/a/2010/0607/11062.html" /></para>
+                    <para>ARM是RISC结构，数据从内存到CPU之间的移动只能通过L/S指令来完成，也就是ldr/str指令。 </para>
+                    <para>比如想把数据从内存中某处读取到寄存器中，只能使用ldr </para>
+                    <para>比如： </para>
+                    <para>ldr r0, 0x12345678</para>
+                    <para>就是把0x12345678这个地址中的值存放到r0中。</para>
+                </blockquote>
+                <para>上面那些ldr的作用，以第一个_undefined_instruction为例，就是将地址为_undefined_instruction中的一个word的值，赋值给pc。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="dot_word"><title>.word</title>
+    <programlistingco>
+        <programlisting language="c" >
+_undefined_instruction:	.word<co id="co.word" linkends="co.note.word" /> undefined_instruction
+_software_interrupt:	.word software_interrupt
+_prefetch_abort:	.word prefetch_abort
+_data_abort:		.word data_abort
+_not_used:		.word not_used
+_irq:			.word irq
+_fiq:			.word fiq
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.word" arearefs="co.word" >
+                <blockquote>
+                    <para><ulink url="http://blogold.chinaunix.net/u3/115924/showart_2280163.html" /></para>
+                    <para>.word      .word expr {,expr}…  分配一段字内存单元，并用expr初始化字内存单元(32bit)</para>
+                </blockquote>
+                <para><ulink url="http://re-eject.gbadev.org/files/GasARMRef.pdf" /></para>
+                <blockquote>
+                    <table id="tbl.dot_word_syntax" ><title>.word的语法</title>
+                        <tgroup cols="4" >
+                            <colspec colnum="1" colname="col1" colwidth="1*" />
+                            <colspec colnum="2" colname="col2" colwidth="1*" />
+                            <colspec colnum="3" colname="col3" colwidth="1*" />
+                            <colspec colnum="4" colname="col4" colwidth="1*" />
+                            
+                            <thead>
+                                <row><entry>Directive</entry><entry>Description</entry><entry>Syntax</entry><entry>Example</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry><emphasis>.word</emphasis></entry><entry>Define word <emphasis>expr</emphasis> (32bit numbers)</entry><entry>.word expr {, …}</entry><entry><emphasis>.word</emphasis> 144511, 0x11223</entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                </blockquote>
+                <para>所以上面的含义，以_undefined_instruction为例，就是，此处分配了一个word=32bit=4字节的地址空间，里面存放的值是undefined_instruction。</para>
+                <para>而此处_undefined_instruction也就是该地址空间的地址了。用C语言来表达就是：</para>
+                <para>_undefined_instruction = &amp;undefined_instruction</para>
+                <para>或</para>
+                <para>*_undefined_instruction = undefined_instruction</para>
+                <para>在后面的代码，我们可以看到，undefined_instruction也是一个标号，即一个地址值，对应着就是在发生“未定义指令”的时候，系统所要去执行的代码。</para>
+                <para>（其他几个对应的“软件中断”，“预取指错误”，“数据错误”，“未定义”，“（普通）中断”，“快速中断”，也是同样的做法，跳转到对应的位置执行对应的代码。）</para>
+                <para>所以：</para>
+                <programlisting>
+ldr pc, 标号1
+......
+标号1：.word 标号2
+......
+标号2：
+......（具体要执行的代码）
+                </programlisting>
+                <para>的意思就是，将地址为标号1中内容载入到pc，而地址为标号1中的内容，正好装的是标号2。</para>
+                <para>用C语言表达其实很简单：</para>
+                <para>PC = *（标号1） = 标号2</para>
+                <para>对PC赋值，即是实现代码跳转，所以整个这段汇编代码的意思就是：</para>
+                <para><emphasis>跳转到标号2的位置，执行对应的代码。</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="dot_balignl"><title>.balignl</title>
+    <programlistingco>
+        <programlisting language="c" >
+	.balignl<co id="co.balignl" linkends="co.note.word" /> 16,0xdeadbeef
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.balignl" arearefs="co.balignl" >
+                <para>balignl这个标号的语法及含义：</para>
+                <blockquote>
+                    <para><ulink url="http://re-eject.gbadev.org/files/GasARMRef.pdf" /></para>
+                    <table id="tbl.balignl_syntax" ><title>balignl的语法</title>
+                        <tgroup cols="4" >
+                            <colspec colnum="1" colname="col1" colwidth="1*" />
+                            <colspec colnum="2" colname="col2" colwidth="2*" />
+                            <colspec colnum="3" colname="col3" colwidth="1*" />
+                            <colspec colnum="4" colname="col4" colwidth="1*" />
+                            
+                            <thead>
+                                <row><entry>Directive</entry><entry>Description</entry><entry>Syntax</entry><entry>Example</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry><emphasis>.balignl</emphasis></entry><entry>Word align the following code to <emphasis>alignment</emphasis> byte boundary (<emphasis>default=4</emphasis>). Fill skipped words with <emphasis>fill</emphasis> (<emphasis>default=0 or NOP</emphasis>). If the number of bytes skipped is greater than max, then don't align (<emphasis>default=alignment</emphasis> ).</entry><entry>.balignl {alignment} {, fill} {, max}</entry><entry><emphasis>.balignl</emphasis></entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                </blockquote>
+                <para>所以意思就是，接下来的代码，都要16字节对齐，不足之处，用0xdeadbeef填充。</para>
+                <para>其中关于所要填充的内容0xdeadbeef，刚开始没看懂是啥意思，后来终于搞懂了。</para>
+                <para>经过（<email>645116977@qq.com</email>等）多位网友提示和纠正，觉得这样解释会更加合理些：</para>
+                <para>此处0xdeadbeef本身没有真正的意义，但是很明显，字面上的意思是，（坏）死的牛肉。</para>
+                <para>虽然其本身没有实际意义，但是其是在十六进制下，能表示出来的，为数不多的，可读的单词之一了。</para>
+                <para>另外一个相对常见的是：<emphasis>0xbadc0de</emphasis>，意思是bad code，坏的代码，注意其中的o是0，因为十六进制中是没有o的。</para>
+                <para>这些“单词”，相对的作用是，使得读代码的人，以及在查看程序运行结果时，容易看懂，便于引起注意。</para>
+                <para>而关于自己之前，随意杜撰出来的，希望起到搞笑作用，表示good beef（好的牛肉）的0xgoodbeef，实际上，在十六进制下，会出错的，因为十六进制下没有o和
+                g这两个字母。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="_text_base__armboot_start"><title>_TEXT_BASE _armboot_start</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ *************************************************************************
+ *
+ * Startup Code (reset vector)
+ *
+ * do important init only if we don't start from memory!
+ * relocate armboot to ram
+ * setup stack
+ * jump to second stage
+ *
+ *************************************************************************
+ */
+
+_TEXT_BASE<co id="co._text_base" linkends="co.note._text_base" />:
+	.word	TEXT_BASE
+
+<co id="co.globl_armboot_start" linkends="co.note.globl_armboot_start" />.globl _armboot_start
+_armboot_start:
+	.word _start
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note._text_base" arearefs="co._text_base" >
+                <para>此处和上面的类似，_TEXT_BASE是一个标号地址，此地址中是一个word类型的变量，变量名是TEXT_BASE,此值见名知意，是text的base，即代码的基地址，可以在</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\config.mk</filename></para>
+                <para>中找到其定义：</para>
+                <programlisting>TEXT_BASE = 0x33D00000</programlisting>
+            </callout>
+            <callout id="co.note.globl_armboot_start" arearefs="co.globl_armboot_start" >
+                <para>同理，此含义可用C语言表示为：</para>
+                <para><emphasis>*(_armboot_start) = _start</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="_bss_start__bss_end"><title>_bss_start _bss_end</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ * These are defined in the board-specific linker script.
+ */
+.globl _bss_start
+_bss_start:
+	.word __bss_start
+<co id="co.bss_start_end" linkends="co.note.bss_start_end" />
+.globl _bss_end
+_bss_end:
+	.word _end
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.bss_start_end" arearefs="co.bss_start_end" >
+                <para>关于_bss_start和_bss_end都只是两个标号，对应着此处的地址。</para>
+                <para>而两个地址里面分别存放的值是__bss_start和_end,这两个的值，根据注释所说，是定义在开发板相关的链接脚本里面的，我们此处的开发板相关的链接脚本是：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\u-boot.lds</filename></para>
+                <para>其中可以找到__bss_start和_end的定义：</para>
+                <programlisting>
+	__bss_start = .;
+	.bss : { *(.bss) }
+	_end = .;
+                </programlisting>
+                <para>而关于_bss_start和_bss_end定义为.glogl即全局变量，是因为uboot的其他源码中要用到这两个变量，详情请自己去搜索源码。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="free_ram_end_free_ram_size"><title>FREE_RAM_END FREE_RAM_SIZE</title>
+    <programlistingco>
+        <programlisting language="c" >
+.globl FREE_RAM_END
+FREE_RAM_END:
+	.word	0x0badc0de
+<co id="co.free_ram_start_end" linkends="co.note.free_ram_start_end" />
+.globl FREE_RAM_SIZE
+FREE_RAM_SIZE:
+	.word	0x0badc0de
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.free_ram_start_end" arearefs="co.free_ram_start_end" >
+                <para>关于FREE_RAM_END和FREE_RAM_SIZE，这里只是两个标号，之所以也是声明为全局变量，是因为uboot的源码中会用到这两个变量。</para>
+                <para>但是这里有点特别的是，这两个变量，将在本源码start.S中的后面要用到，而在后面用到这两个变量之前，uboot的C源码中，会先去修改这两个值，具体的逻辑是：</para>
+                <para>本文件start.S中，后面有这两句：</para>
+                <programlisting>
+	ldr	pc, _start_armboot
+
+_start_armboot:	.word start_armboot
+                </programlisting>
+                <para>意思很明显，就是去调用start_armboot函数。</para>
+                <para>而start_armboot函数是在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\lib_arm\board.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+init_fnc_t *init_sequence[] = {
+	cpu_init,		/* basic cpu dependent setup */
+......
+	NULL,
+};
+
+void start_armboot (void)
+{
+	init_fnc_t **init_fnc_ptr;
+......
+
+	for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
+		if ((*init_fnc_ptr)() != 0) {
+			hang ();
+		}
+	}
+......
+
+}
+                </programlisting>
+                <para>即在start_armboot去调用了cpu_init。</para>
+                <para>cpu_init函数是在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\cpu\arm920t\cpu.c</filename></para>
+                <para>中：</para>
+                <formalpara id="code_cpu_init"><title>cpu_init源码</title>
+                    <programlisting>
+int cpu_init (void)
+{
+    /*
+     * setup up stacks if necessary
+     */
+#ifdef CONFIG_USE_IRQ
+    IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
+    FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
+    FREE_RAM_END = FIQ_STACK_START - CONFIG_STACKSIZE_FIQ - CONFIG_STACKSIZE;
+    FREE_RAM_SIZE = FREE_RAM_END - PHYS_SDRAM_1;
+#else    
+    FREE_RAM_END = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4 - CONFIG_STACKSIZE;
+    FREE_RAM_SIZE = FREE_RAM_END - PHYS_SDRAM_1;
+#endif
+    return 0;
+}
+                    </programlisting>
+                </formalpara>
+                <para>在cpu_init中，根据我们的一些定义，比如堆栈大小等等，去修改了IRQ_STACK_START ，FIQ_STACK_START ，FREE_RAM_END和FREE_RAM_SIZE的值。</para>
+                <para>至于为何这么修改，后面遇到的时候会具体再解释。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="irq_stack_start_fiq_stack_start"><title>IRQ_STACK_START FIQ_STACK_START</title>
+    <programlistingco>
+        <programlisting language="c" >
+#ifdef CONFIG_USE_IRQ
+/* IRQ stack memory (calculated at run-time) */
+.globl IRQ_STACK_START
+IRQ_STACK_START:
+	.word	0x0badc0de
+<co id="co.irq_fiq_stack_start" linkends="co.note.irq_fiq_stack_start" />
+/* IRQ stack memory (calculated at run-time) */
+.globl FIQ_STACK_START
+FIQ_STACK_START:
+	.word 0x0badc0de
+#endif
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.irq_fiq_stack_start" arearefs="co.irq_fiq_stack_start" >
+                <para>同上，IRQ_STACK_START和FIQ_STACK_START，也是在cpu_init中用到了。</para>
+                <para>不过此处，是只有当定义了宏CONFIG_USE_IRQ的时候，才用到这两个变量，其含义也很明显，</para>
+                <para>只有用到了中断IRQ，才会用到中断的堆栈，才有中端堆栈的起始地址。</para>
+                <para>快速中断FIQ，同理。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="cpsr"><title>cpsr</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ * the actual reset code
+ */
+
+reset:
+	/*
+	 * set the cpu to SVC32 mode
+	 */
+	mrs<co id="co.mrs" linkends="co.note.mrs" />	r0,cpsr<co id="co.cpsr" linkends="co.note.cpsr" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.cpsr" arearefs="co.cpsr" >
+                <para>CPSR 是当前的程序状态寄存器(Current Program Status Register)，</para>
+                <para>而 SPSR 是保存的程序状态寄存器(Saved Program Status Register)。</para>
+                <para>具体细节，可参考：</para>
+                <blockquote>
+                    <ulink url="http://www.docin.com/p-73665362.html" >ARM7体系结构</ulink>
+                </blockquote>
+                <blockquote>
+                    <para><ulink url="http://www.csie.nctu.edu.tw/~wjtsai/EmbeddedSystemDesign/Ch2-bootloader.pdf" /></para>
+                    <figure id="fg.cpsr_spsr_bit_field" ><title>CPSR/SPSR的位域结构</title>
+                        <mediaobject>
+                            <imageobject role="html" >
+                                <imagedata fileref="images/cpsr_spsr_bit_field.png" align="left" scalefit="0" width="100%" />
+                            </imageobject>
+                            <imageobject role="fo" >
+                                <imagedata fileref="images/cpsr_spsr_bit_field.png" align="center" scalefit="1" width="100%" />
+                            </imageobject>
+                        </mediaobject>
+                    </figure>
+                </blockquote>
+                <blockquote>
+                    <table id="tbl.cpsr_bitfield" ><title>CPSR Bitfield</title>
+                        <tgroup cols="14" >
+                            <colspec colnum="1" colname="col1" colwidth="1*" />
+                            <colspec colnum="2" colname="col2" colwidth="1*" />
+                            <colspec colnum="3" colname="col3" colwidth="1*" />
+                            <colspec colnum="4" colname="col4" colwidth="1*" />
+                            <colspec colnum="5" colname="col5" colwidth="1*" />
+                            <colspec colnum="6" colname="col6" colwidth="1*" />
+                            <colspec colnum="7" colname="col7" colwidth="1*" />
+                            <colspec colnum="8" colname="col8" colwidth="1*" />
+                            <colspec colnum="9" colname="col9" colwidth="1*" />
+                            <colspec colnum="10" colname="col10" colwidth="1*" />
+                            <colspec colnum="11" colname="col11" colwidth="1*" />
+                            <colspec colnum="12" colname="col12" colwidth="1*" />
+                            <colspec colnum="13" colname="col13" colwidth="1*" />
+                            <colspec colnum="14" colname="col14" colwidth="3*" />
+                            
+                            <thead>
+                                <row><entry>31</entry><entry>30</entry><entry>29</entry><entry>28</entry><entry>---</entry><entry>7</entry><entry>6</entry><entry>-</entry><entry>4</entry><entry>3</entry><entry>2</entry><entry>1</entry><entry>0</entry><entry>说明</entry></row>
+                            </thead>
+                            
+                            <tbody>
+                                <row><entry>N</entry><entry>Z</entry><entry>C</entry><entry>V</entry><entry></entry><entry>I</entry><entry>F</entry><entry></entry><entry>M4</entry><entry>M3</entry><entry>M2</entry><entry>M1</entry><entry>M0</entry><entry></entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>User26 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>FIQ26 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>0</entry><entry>IRQ26 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>1</entry><entry>SVC26 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>1</entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>User 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>1</entry><entry>0</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>FIQ 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>1</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>0</entry><entry>IRQ 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>1</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>1</entry><entry>SVC 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>1</entry><entry>0</entry><entry>1</entry><entry>1</entry><entry>1</entry><entry>ABT 模式</entry></row>
+                                <row><entry namest="col1" nameend="col8" align="center"></entry><entry>1</entry><entry>1</entry><entry>0</entry><entry>1</entry><entry>1</entry><entry>UND 模式</entry></row>
+                            </tbody>
+                        </tgroup>
+                    </table>
+                </blockquote>
+            </callout>
+
+            <callout id="co.note.mrs" arearefs="co.mrs" >
+                <para>MRS - Move From Status Register</para>
+                <para>MRS指令的语法为：</para>
+                <blockquote>
+                    <para>四、程序状态寄存器访问指令</para>
+                    <para>1、  MRS指令</para>
+                    <para>MRS指令的格式为：</para>
+                    <para>MRS{条件}    通用寄存器，程序状态寄存器（CPSR或SPSR）</para>
+                    <para>MRS指令用于将程序状态寄存器的内容传送到通用寄存器中。该指令一般用在以下两种情况：</para>
+                    <para>Ⅰ.当需要改变程序状态寄存器的内容时，可用MRS将程序状态寄存器的内容读入通用寄存器，修改后再写回程序状态寄存器。</para>
+                    <para>Ⅱ.当在异常处理或进程切换时，需要保存程序状态寄存器的值，可先用该指令读出程序状态寄存器的值，然后保存。</para>
+                    <para>指令示例：</para>
+                    <para>MRS R0，CPSR                         ；传送CPSR的内容到R0</para>
+                    <para>MRS R0，SPSR                         ；传送SPSR的内容到R0”</para>
+                </blockquote>
+                <para>所以，上述汇编代码含义为，将CPSR的值赋给R0寄存器。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="bic"><title>bic</title>
+    <programlistingco>
+        <programlisting language="c" >
+	bic<co id="co.bic" linkends="co.note.bic" />	r0,r0,#0x1f
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.bic" arearefs="co.bic" >
+                <para>bic指令的语法是：</para>
+                <blockquote>
+                    <para>16、BIC指令</para>
+                    <para>BIC指令的格式为：</para>
+                    <para>BIC{条件}{S} 目的寄存器，操作数1，操作数2</para>
+                    <para>BIC指令用于清除操作数1的某些位，并把结果放置到目的寄存器中。操作数1应是一个寄存器，</para>
+                    <para>操作数2可以是一个寄存器，被移位的寄存器，或一个立即数。操作数2为32位的掩码，如果在掩码中设置了某一位，则清除这一位。未设置的掩码位保持不变。</para>
+                </blockquote>
+                <para>而0x1f=11111b</para>
+                <para>所以，此行代码的含义就是，清除r0的bit[4:0]位。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="orr"><title>orr</title>
+    <programlistingco>
+        <programlisting language="c" >
+	orr<co id="co.orr" linkends="co.note.orr" />	r0,r0,#0xd3
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.orr" arearefs="co.orr" >
+                <para>orr指令的语法是：</para>
+                <blockquote>
+                    <para>14、ORR指令</para>
+                    <para>ORR指令的格式为：</para>
+                    <para>ORR{条件}{S} 目的寄存器，操作数1，操作数2</para>
+                    <para>ORR指令用于在两个操作数上进行逻辑或运算，并把结果放置到目的寄存器中。操作数1应是一个寄存器，操作数2可以是一个寄存器，被移位的寄存器，或一个立即数。该指令常用于设置操作数1的某些位。</para>
+                    <para>指令示例：</para>
+                    <para>ORR R0，R0，＃3         ； 该指令设置R0的0、1位，其余位保持不变。</para>
+                </blockquote>
+                <para>所以此行汇编代码的含义为：</para>
+                <para>而0xd3=1101 0111[4:0]位。</para>
+                <para>将r0与0xd3算数或运算，然后将结果给r0,即把r0的bit[7:6]和bit[4]和bit[2:0]置为1。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="msr"><title>msr</title>
+    <programlistingco>
+        <programlisting language="c" >
+	msr<co id="co.msr" linkends="co.note.msr" />	cpsr,r0
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.msr" arearefs="co.msr" >
+                <para>MSR - Move to Status Register</para>
+                <para>msr的指令格式是：</para>
+                <blockquote>
+                    <para>四、程序状态寄存器访问指令</para>
+                    <para>......</para>
+                    <para>2、  MSR指令</para>
+                    <para>MSR指令的格式为：</para>
+                    <para>MSR{条件}    程序状态寄存器（CPSR或SPSR）_&lt;域&gt;，操作数</para>
+                    <para>MSR指令用于将操作数的内容传送到程序状态寄存器的特定域中。其中，操作数可以为通用寄存器或立即数。&lt;域&gt;用于设置程序状态寄存器中需要操作的位，32位的程序状态寄存器可分为4个域：</para>
+                    <para>位[31：24]为条件标志位域，用f表示；</para>
+                    <para>位[23：16]为状态位域，用s表示；</para>
+                    <para>位[15：8]为扩展位域，用x表示；</para>
+                    <para>位[7：0]为控制位域，用c表示；</para>
+                    <para>该指令通常用于恢复或改变程序状态寄存器的内容，在使用时，一般要在MSR指令中指明将要操作的域。</para>
+                    <para>指令示例：</para>
+                    <para>MSR CPSR，R0        ；传送R0的内容到CPSR</para>
+                    <para>MSR SPSR，R0        ；传送R0的内容到SPSR</para>
+                    <para>MSR CPSR_c，R0      ；传送R0的内容到SPSR，但仅仅修改CPSR中的控制位域</para>
+                </blockquote>
+                <para>此行汇编代码含义为，将r0的值赋给CPSR。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<para>所以，上面四行汇编代码的含义就很清楚了。</para>
+<para>先是把CPSR的值放到r0寄存器中，然后清除bit[4:0]，然后再或上</para>
+<screen>0xd3=11   0  10111b</screen>
+<para></para>
+<table id="tbl.cpsr_0xd3_bitfields" ><title>CPSR=0xD3的位域及含义</title>
+    <tgroup cols="9" >
+        <colspec colnum="1" colname="col1" colwidth="1*" />
+        <colspec colnum="2" colname="col2" colwidth="1*" />
+        <colspec colnum="3" colname="col3" colwidth="1*" />
+        <colspec colnum="4" colname="col4" colwidth="1*" />
+        <colspec colnum="5" colname="col5" colwidth="1*" />
+        <colspec colnum="6" colname="col6" colwidth="1*" />
+        <colspec colnum="7" colname="col7" colwidth="1*" />
+        <colspec colnum="8" colname="col8" colwidth="1*" />
+        <colspec colnum="9" colname="col9" colwidth="1*" />
+        
+        <tbody>
+            <row><entry>CPSR位域</entry><entry>7</entry><entry>6</entry><entry>5</entry><entry>4</entry><entry>3</entry><entry>2</entry><entry>1</entry><entry>0</entry></row>
+            <row><entry>位域含义</entry><entry>I</entry><entry>F</entry><entry></entry><entry>M4</entry><entry>M3</entry><entry>M2</entry><entry>M1</entry><entry>M0</entry></row>
+            <row><entry>0xD3</entry><entry>1</entry><entry>1</entry><entry>0</entry><entry>1</entry><entry>0</entry><entry>0</entry><entry>1</entry><entry>1</entry></row>
+            <row><entry>对应含义</entry><entry>关闭中断IRQ</entry><entry>关闭快速中断FIQ</entry><entry></entry><entry namest="col5" nameend="col9" align="center" >设置CPU为SVC模式,这和上面代码注释中的“set the cpu to SVC32 mode”，也是一致的。</entry></row>
+        </tbody>
+    </tgroup>
+</table>
+<para>关于为何设置CPU为SVC模式，而不是设置为其他模式，请参见本文档后面的章节：<xref linkend="why_svc_not_other" /></para>
+
+</sect1>

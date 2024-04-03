@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE book
+[
+
+<!ENTITY cur_book_name      "uboot_starts_analysis" >
+<!ENTITY publish_date       "2013-09-04" >
+<!ENTITY release_version    "1.9" >
+
+<!ENTITY copyrith_year "2013" >
+<!ENTITY entity_common_multi_format     SYSTEM  "../../entity_common_multi_format.xml">
+<!ENTITY entity_common_publish_info     SYSTEM  "../../entity_common_publish_info.xml">
+]>
+
+<book version="5.0"
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    xml:lang="zh_CN"
+    >
+
+<info>
+    <title>Uboot中start.S源码的指令级的详尽解析</title>
+    <subtitle></subtitle>
+    <keywordset>
+        <keyword>Uboot</keyword>
+        <keyword>Start.S</keyword>
+        <keyword>指令级</keyword>
+        <keyword>每一行</keyword>
+        <keyword>详解</keyword>
+    </keywordset>
+
+    <abstract>
+        <para>本文对Uboot中的Start.S的源码的几乎每一行，都进行了详细的解析</para>
+        &entity_common_multi_format;
+    </abstract>
+
+    <revhistory>
+        <revision>
+            <revnumber>&release_version;</revnumber>
+            <date>&publish_date;</date>
+            <revremark>
+                <orderedlist>
+                    <listitem>通过Docbook发布</listitem>
+                    <listitem>修正了一些琐碎的笔误，同时增添了些琐碎内容</listitem>
+                    <listitem>修正了0xdeadbeef的解释</listitem>
+                    <listitem>更新了所有的xml:id</listitem>
+                </orderedlist>
+            </revremark>
+            <authorinitials>crl</authorinitials>
+        </revision>
+        <revision>
+            <revnumber>1.6</revnumber>
+            <date>2011-05-01</date>
+            <revremark>
+                <orderedlist>
+                    <listitem>添加汇编学习记录</listitem>
+                    <listitem>添加了如何查看C或汇编的源代码所对应的真正的汇编代码</listitem>
+                    <listitem>添加Start.S的总结
+                        <orderedlist>
+                            <listitem>Start.S的各个部分的总结</listitem>
+                            <listitem>Uboot中的内存的layout</listitem>
+                        </orderedlist>
+                    </listitem>
+                    <listitem>更加详细地解释了为何ARM9中PC=PC+8</listitem>
+                    <listitem>添加了一些其他的细节的内容</listitem>
+                    <listitem>修正一些拼写错误</listitem>
+                </orderedlist>
+            </revremark>
+            <authorinitials>crl</authorinitials>
+        </revision>
+        <revision>
+            <revnumber>1.0</revnumber>
+            <date>2011-04-17</date>
+            <revremark>
+                <orderedlist>
+                    <listitem>详细解释了uboot的start.s中的每行代码</listitem>
+                    <listitem>添加了相关知识点的详细解释</listitem>
+                </orderedlist>
+            </revremark>
+            <authorinitials>crl</authorinitials>
+        </revision>
+    </revhistory>
+
+    &entity_common_publish_info;
+</info>
+
+<xi:include href="preface.xml"/>
+<xi:include href="ch01_starts_explanation.xml"/>
+<xi:include href="ch02_starts_summary.xml"/>
+<xi:include href="ch03_related_knowledge.xml"/>
+<xi:include href="reference.xml"/>
+
+</book>

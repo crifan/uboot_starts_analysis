@@ -1,0 +1,440 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01s4_setup_stack_pointer">
+<title>设置堆栈sp指针</title>
+
+<sect2 xml:id="stack_setup"><title>stack_setup</title>
+    <programlistingco>
+        <programlisting language="c" >
+	/* Set up the stack						    */
+stack_setup:
+	ldr	r0, _TEXT_BASE		/* upper 128 KiB: relocated uboot   */<co id="co.ldr_textbase" linkends="co.note.ldr_textbase" />
+	sub	r0, r0, #CFG_MALLOC_LEN	/* malloc area                      */
+	sub	r0, r0, #CFG_GBL_DATA_SIZE /* bdinfo                        */
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.ldr_textbase" arearefs="co.ldr_textbase" >
+                <para>此句含义是，把地址为_TEXT_BASE的内存中的内容给r0,即，将所有的中断都mask了。</para>
+                <para>而查看前面的相关部分的代码，即：</para>
+                <programlisting>
+_TEXT_BASE:
+	.word	TEXT_BASE
+                </programlisting>
+                <para>得知，地址为_TEXT_BASE的内存中的内容，就是</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\config.mk</filename></para>
+                <para>中的：</para>
+                <para>TEXT_BASE = 0x33D00000</para>
+                <para>所以，此处即：</para>
+                <para><emphasis>r0</emphasis></para>
+                <para><emphasis>= TEXT_BASE </emphasis></para>
+                <para><emphasis>= 0x33D00000</emphasis></para>
+                <para>而关于sub指令：</para>
+                <blockquote>
+                    <para>SUB : 减法</para>
+                    <para>(Subtraction)</para>
+                    <para>  SUB{条件}{S}  &lt;dest&gt;, &lt;op 1&gt;, &lt;op 2&gt;</para>
+                    <para>                dest = op_1 - op_2</para>
+                    <para>SUB 用操作数 one 减去操作数 two，把结果放置到目的寄存器中。操作数 1 是一个寄存器，操作数 2 可以是一个寄存器，被移位的寄存器，或一个立即值: </para>
+                    <para>  SUB     R0, R1, R2              ; R0 = R1 - R2</para>
+                    <para>  SUB     R0, R1, #256            ; R0 = R1 - 256</para>
+                    <para>  SUB     R0, R2, R3,LSL#1        ; R0 = R2 - (R3 &lt;&lt; 1)</para>
+                    <para>减法可以在有符号和无符号数上进行。</para>
+                </blockquote>
+                <para>所以对应含义为：</para>
+                <para>r0 = r0 - #CFG_MALLOC_LEN</para>
+                <para>r0 = r0 - #CFG_GBL_DATA_SIZE</para>
+                <para>其中，对应的两个宏的值是：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\include\configs\EmbedSky.h</filename></para>
+                <para>中：</para>
+                <programlisting>
+#define CONFIG_64MB_Nand		0		//添加了对64MB Nand Flash支持
+
+/*
+ * Size of malloc() pool
+ */
+#define CFG_MALLOC_LEN				(CFG_ENV_SIZE + 128*1024)
+#define CFG_GBL_DATA_SIZE			128	/* size in bytes reserved for initial data */
+
+#if(CONFIG_64MB_Nand == 1)
+#define CFG_ENV_SIZE			0xc000	/* Total Size of Environment Sector */
+#else
+#define CFG_ENV_SIZE			0x20000	/* Total Size of Environment Sector */
+#endif
+                </programlisting>
+                <para>所以，从源码中的宏定义中可以看出，</para>
+                <para>CFG_MALLOC_LEN</para>
+                <para>= (CFG_ENV_SIZE + 128*1024) </para>
+                <para>= 0x20000 + 128*1024</para>
+                <para>= 0x40000</para>
+                <para>= 256*1024</para>
+                <para>= 256KB</para>
+                <para></para>
+                <para>CFG_GBL_DATA_SIZE</para>
+                <para>= 128</para>
+                <para>所以，此三行的含义就是算出r0的值：</para>
+                <para><emphasis>r0</emphasis></para>
+                <para>= (r0 - #CFG_MALLOC_LEN) - #CFG_GBL_DATA_SIZE</para>
+                <para>= r0 - 0x40000 – 128</para>
+                <para><emphasis>= r0 – 0x40080</emphasis></para>
+                <para><emphasis>= 33CBFF80</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="calc_stack"><title>calc stack</title>
+    <programlistingco>
+        <programlisting language="c" >
+#ifdef CONFIG_USE_IRQ
+	sub	r0, r0, #(CONFIG_STACKSIZE_IRQ+CONFIG_STACKSIZE_FIQ)<co id="co.calc_stack" linkends="co.note.calc_stack" />
+#endif
+	sub	sp, r0, #12<co id="co.reduce_12bytes" linkends="co.note.reduce_12bytes" />		/* leave 3 words for abort-stack    */
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.calc_stack" arearefs="co.calc_stack" >
+                <para>如果定义了CONFIG_USE_IRQ，即如果使用中断的话，那么再把r0的值减去IRQ和FIQ的堆栈的值，</para>
+                <para>而对应的宏的值也是在</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\include\configs\EmbedSky.h</filename></para>
+                <para>中：</para>
+                <programlisting>
+/*-------------------------------------------------------------------
+ * Stack sizes
+ *
+ * The stack sizes are set up in start.S using the settings below
+ */
+#define CONFIG_STACKSIZE		(128*1024)	/* regular stack */
+#ifdef CONFIG_USE_IRQ
+#define CONFIG_STACKSIZE_IRQ		(4*1024)	/* IRQ stack */
+#define CONFIG_STACKSIZE_FIQ		(4*1024)	/* FIQ stack */
+#endif
+                </programlisting>
+                <para>所以，此时r0的值就是：</para>
+                <para>#ifdef CONFIG_USE_IRQ</para>
+                <para><emphasis>r0</emphasis></para>
+                <para>= r0 - #(CONFIG_STACKSIZE_IRQ+CONFIG_STACKSIZE_FIQ)</para>
+                <para>= r0 – (4*1024 + 4*1024)</para>
+                <para>= r0 – 8*1024</para>
+                <para>= 33CBFF80 – 8*1024</para>
+                <para><emphasis>= 33CBDF80</emphasis></para>
+                <para>#endif</para>
+            </callout>
+            <callout id="co.note.reduce_12bytes" arearefs="co.reduce_12bytes" >
+                <para>最后，再减去终止异常所用到的堆栈大小，即12个字节。</para>
+                <para>现在r0的值为：</para>
+                <para>#ifdef CONFIG_USE_IRQ</para>
+                <para><emphasis>r0</emphasis></para>
+                <para>= r0 – 12</para>
+                <para>= 33CBDF80 - 12</para>
+                <para><emphasis>= 33CBDF74</emphasis></para>
+                <para>#else</para>
+                <para><emphasis>r0</emphasis></para>
+                <para>= r0 – 12</para>
+                <para>= 33CBFF80 - 12</para>
+                <para><emphasis>= 33CBFF74</emphasis></para>
+                <para>#endif</para>
+                <para>然后将r0的值赋值给sp,即堆栈指针。</para>
+                <para>关于：</para>
+                <para>sp代表stack pointer，堆栈指针；</para>
+                <para>和后面要提到的ip寄存器：</para>
+                <para>ip代表instruction pointer，指令指针。</para>
+                <para>更多详情参见下面的解释。</para>
+                <para>关于ARM的寄存器的别名和相关的APCS，参见本文后面的内容：<xref linkend="arm_reg_name_apcs" /></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="bl_clock_init"><title>bl clock_init</title>
+    <programlistingco>
+        <programlisting language="c" >
+	bl clock_init<co id="co.clock_init" linkends="co.note.clock_init" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.clock_init" arearefs="co.clock_init" >
+                <para>在上面，经过计算，算出了堆栈的地址，然后赋值给了sp，此处，接着才去调用函数clock_init去初始化时钟。</para>
+                <para>其中此函数是在C文件：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\boot_init.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+void clock_init(void)
+{
+...设置系统时钟clock的相关代码...
+}
+                </programlisting>
+                <para>看到这里，让我想起，关于其他人的关于此start.S代码解释中说到的，此处是先去设置好堆栈，即初始化sp指针，然后才去调用C语言的函数clock_init的。</para>
+                <para>而我们可以看到，前面那行代码：</para>
+                <programlisting>
+#ifndef CONFIG_SKIP_LOWLEVEL_INIT
+	bl	cpu_init_crit
+#endif
+                </programlisting>
+                <para>就不需要先设置好堆栈，再去进行函数调用。</para>
+                <para>其中cpu_init_crit对应的代码也在start.S中（详见后面对应部分的代码），是用汇编实现的。</para>
+                <para>而对于C语言，为何就需要堆栈，而汇编却不需要堆栈的原因，请参见本文后面的内容：<xref linkend="why_c_need_stack" /></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="adr"><title>adr</title>
+    <programlistingco>
+        <programlisting language="c" >
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
+relocate:				/* relocate U-Boot to RAM	    */
+	adr<co id="co.adr" linkends="co.note.adr" />	r0, _start		/* r0 &lt;- current position of code   */
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.adr" arearefs="co.adr" >
+                <para>adr指令的语法和含义：</para>
+                <blockquote>
+                    <para><ulink url="http://blog.mcuol.com/User/cdkfGao/article/8057_1.htm" /></para>
+                    <para>1、ADR伪指令--- 小范围的地址读取</para>
+                    <para>     ADR伪指令将基于PC相对偏移的地址值或基于寄存器相对偏移的地址值读取到寄存器中。</para>
+                    <para>在汇编编译器编译源程序时，ADR伪指令被编译器替换成一条合适的指令。通常，编译器用一条ADD指令或SUB指令来实现该ADR伪指令的功能，若不能用一条指令实现，则产生错误，编译失败。</para>
+                    <para>ADR伪指令格式 ：<emphasis>ADR{cond}   register, expr</emphasis></para>
+                    <para>地址表达式expr的取值范围：</para>
+                    <para>    当地址值是字节对齐时，其取指范围为: +255  ～ 255B； </para>
+                    <para>    当地址值是字对齐时，其取指范围为:   -1020 ～ 1020B；</para>
+                </blockquote>
+                <para>所以，上述:</para>
+                <programlisting>adr r0, _start</programlisting>
+                <para>的意思其实很简单，就是将_start的地址赋值给r0.但是具体实现的方式就有点复杂了，对于用adr指令实现的话，说明_start这个地址，相对当前PC的偏移，应该是很小的，意思就是向前一段后者向后一段去找，肯定能找到_start这个标号地址的，此处，自己通过看代码也可以看到_start，就是在当前指令的前面，距离很近，编译后，对应汇编代码，也可以猜得出，应该是上面所说的，用sub来实现，即当前PC减去某个值，得到_start的值，</para>
+                <para>参照前面介绍的内容，去：</para>
+                <screen>arm-inux-objdump –d u-boot > dump_u-boot.txt</screen>
+                <para>然后打开dump_u-boot.txt,可以找到对应的汇编代码，如下：</para>
+                <screen>
+33d00000 &lt;_start&gt;:
+33d00000:	ea000014 	b	33d00058 &lt;reset&gt;
+。。。
+33d000a4 &lt;relocate&gt;:
+33d000a4:	e24f00ac 	sub	r0, pc, #172	; 0xac
+                </screen>
+                <para>可以看到，这个相对当前PC的距离是0xac=172,细心的读者可以看到，那条指令的地址减去0xac，却并不等于_start的值，即</para>
+                <para>33d000a4 - 33d00000 = 0xa4 != 0xac</para>
+                <para>而0xac – 0xa4 = 8，</para>
+                <para>那是因为，由于ARM920T的五级流水线的缘故导致指令执行那一时刻的PC的值等于该条指令PC的值加上8，即</para>
+                <para>sub	r0, pc, #172中的PC的值是</para>
+                <para>sub	r0, pc, #172</para>
+                <para>指令地址：33d000a4,再加上8，即33d000a4+8 = 33d000ac，</para>
+                <para>所以，33d000ac – 0xac，才等于我们看到的33d00000，才是_start的地址。</para>
+                <para>这个由于流水线导致的PC的值和当前指令地址不同的现象，就是我们常说的，ARM中，PC=PC+8。</para>
+                <para>对于为何是PC=PC+8，请参见后面的内容：<xref linkend="why_arm7_pc_8" /></para>
+                <para>对于此处为何不直接用mov指令，却使用adr指令，请参见后面内容：<xref linkend="why_adr_not_move" /></para>
+                <para>对于mov指令的操作数的取值范围，请参见后面内容：<xref linkend="mov_value_range" /></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+    <programlisting>adr	r0, _start</programlisting>
+    <para>的伪代码，被翻译成实际汇编代码为：</para>
+    <programlisting>33d000a4:	e24f00ac 	sub	r0, pc, #172	; 0xac</programlisting>
+    <para>其含义就是，通过计算PC+8-172 &rArr; _start的地址，</para>
+    <para>而_start的地址，即相对代码段的0地址，是这个地址在运行时刻的值，而当ARM920T加电启动后，，此处是从Nor Flash启动，对应的代码，也是在Nor Flash中，对应的物理地址是0x0,所以，此时_start的值就是0，而不是0x33d00000。</para>
+    <para>所以，此时：</para>
+    <para><emphasis>r0 = 0x0</emphasis></para>
+</sect2>
+
+<sect2 xml:id="clear_bss"><title>clear_bss</title>
+    <programlistingco>
+        <programlisting language="c" >
+	ldr	r1, _TEXT_BASE<co id="co.ldr_text_base" linkends="co.note.ldr_text_base" />		/* test if we run from flash or RAM */
+	<co id="co.cmp_r0_r1" linkends="co.note.cmp_r0_r1" />cmp     r0, r1                  /* don't reloc during debug         */
+	<co id="co.beq_clear_css" linkends="co.note.beq_clear_css" />beq     clear_bss
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.ldr_text_base" arearefs="co.ldr_text_base" >
+                <para>这里的_TEXT_BASE的含义，前面已经说过了，那就是：</para>
+                <blockquote>
+                    <programlisting>
+_TEXT_BASE:
+	.word	TEXT_BASE
+                    </programlisting>
+                </blockquote>
+                <para>得知，地址为_TEXT_BASE的内存中的内容，就是</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\config.mk</filename></para>
+                <para>中的：</para>
+                <programlisting>TEXT_BASE = 0x33D00000</programlisting>
+                <para>所以，此处就是</para>
+                <para><emphasis>r1 = 0x33D00000</emphasis></para>
+            </callout>
+            <callout id="co.note.cmp_r0_r1" arearefs="co.cmp_r0_r1" >
+                <para>含义很简单，就是比较r0和r1。而</para>
+                <para><emphasis>r0 = 0x0</emphasis></para>
+                <para><emphasis>r1 = 0x33D00000</emphasis></para>
+                <para>所以不相等</para>
+            </callout>
+            <callout id="co.note.beq_clear_css" arearefs="co.beq_clear_css" >
+                <para>因此beq发现两者不相等，就不会去跳转到clear_bss，不会去执行对应的将bss段清零的动作了。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="_armboot_start"><title>cal armboot size from _armboot_start</title>
+    <programlistingco>
+        <programlisting language="c" >
+	<co id="co.ldr_armboot" linkends="co.note.ldr_armboot" />ldr	r2, _armboot_start
+	ldr	r3, _bss_start
+	<co id="co.sub_armboot" linkends="co.note.sub_armboot" />sub	r2, r3, r2		/* r2 &lt;- size of armboot            */
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.ldr_armboot" arearefs="co.ldr_armboot" >
+                <para>这两行代码意思也很清楚，分别装载_armboot_start和_bss_start地址中的值，赋值给r2和r3</para>
+                <para>而_armboot_start和_bss_start的值，前面都已经提到过了，就是：</para>
+                <programlisting>
+.globl _armboot_start
+_armboot_start:
+	.word _start
+
+.globl _bss_start
+_bss_start:
+	.word __bss_start
+                </programlisting>
+                <blockquote>
+                    <programlisting>
+_TEXT_BASE:
+	.word	TEXT_BASE
+                    </programlisting>
+                </blockquote>
+                <para>而其中的_start，是我们uboot的代码的最开始的位置，而__bss_start的值，是在</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\u-boot.lds</filename></para>
+                <para>中的：</para>
+                <programlisting>
+SECTIONS
+{
+	. = 0x00000000;
+
+	. = ALIGN(4);
+	.text      :
+...
+	. = ALIGN(4);
+	.rodata : { *(.rodata) }
+
+	. = ALIGN(4);
+	.data : { *(.data) }
+
+...
+	. = ALIGN(4);
+	__bss_start = .;
+	.bss : { *(.bss) }
+	_end = .;
+}
+                </programlisting>
+                <para>所以，可以看出，__bss_start的位置，是bss的start开始位置，同时也是text+rodata+data的结束位置，即代码段，只读数据和已初始化的可写的数据的最末尾的位置。</para>
+                <para>其实我们也可以通过前面的方法，objdump出来，看到对应的值：</para>
+                <screen>
+33d00048 &lt;_bss_start&gt;:
+33d00048:	33d339d4 	.word	0x33d339d4
+                </screen>
+                <para>是0x33d339d4。</para>
+                <note>
+                    <para>【总结】</para>
+                    <para><emphasis>r2 = _start       = 0x33d00000</emphasis></para>
+                    <para><emphasis>r3 =__bss_start  = 0x33d339d4</emphasis></para>
+                </note>
+            </callout>
+            <callout id="co.note.sub_armboot" arearefs="co.sub_armboot" >
+                <para>此处的意思就很清楚了，就是r2 = r3-r2，计算出</para>
+                <para>text + rodata + data</para>
+                <para>的大小，即整个需要载入的数据量是多少，用于下面的函数去拷贝这么多的数据到对应的内存的位置。</para>
+                <para>这里的实际的值是</para>
+                <para><emphasis>r2</emphasis></para>
+                <para>= r3 –r2 </para>
+                <para>= 0x33d339d4 - 0x33d00000</para>
+                <para><emphasis>= 0x000339d4</emphasis></para>
+                <note>
+                    <para>【总结】</para>
+                    <para>到此刻位置,假定是从Nor Flash启动的话：</para>
+                    <para><emphasis>r0 = 0x0 = 我们代码此刻所在的位置</emphasis></para>
+                    <para><emphasis>r1 = 0x33D00000 = 我们想要把我们的代码放到哪里</emphasis></para>
+                    <para><emphasis>r2 = 0x000339d4 = 对应的代码的大小（此处的代码 = text + rodata + data）</emphasis></para>
+                </note>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="copycode2ram"><title>cal armboot size from CopyCode2Ram</title>
+    <programlistingco>
+        <programlisting language="c" >
+#if 1
+	<co id="co.copy_to_ram" linkends="co.note.copy_to_ram" />bl  CopyCode2Ram		/* r0: source, r1: dest, r2: size */
+#else
+	add	r2, r0, r2		/* r2 &lt;- source end address         */
+
+copy_loop:
+	ldmia	r0!, {r3-r10}		/* copy from source address [r0]    */
+	stmia	r1!, {r3-r10}		/* copy to   target address [r1]    */
+	cmp	r0, r2			/* until source end addreee [r2]    */
+	ble	copy_loop
+#endif
+#endif	/* CONFIG_SKIP_RELOCATE_UBOOT */
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.copy_to_ram" arearefs="co.copy_to_ram" >
+                <para>此处，代码很简单，只是注释掉了原先的那些代码，而单纯的只是去调用CopyCode2Ram这个函数。</para>
+                <para>CopyCode2Ram函数，前面也提到过了，是在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\boot_init.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+int CopyCode2Ram(unsigned long start_addr, unsigned char *buf, int size)
+{
+	unsigned int *pdwDest;
+	unsigned int *pdwSrc;
+	int i;
+
+	if (bBootFrmNORFlash())
+	{
+		pdwDest = (unsigned int *)buf;
+		pdwSrc  = (unsigned int *)start_addr;
+		/* 从 NOR Flash启动 */
+		for (i = 0; i &lt; size / 4; i++)
+		{
+			pdwDest[i] = pdwSrc[i];
+		}
+		return 0;
+	}
+	else
+	{
+		/* 初始化NAND Flash */
+		nand_init_ll();
+
+		/* 从 NAND Flash启动 */
+		if (NF_ReadID() == 0x76 )
+			nand_read_ll(buf, start_addr, (size + NAND_BLOCK_MASK)&amp;~(NAND_BLOCK_MASK));
+		else
+			nand_read_ll_lp(buf, start_addr, (size + NAND_BLOCK_MASK_LP)&amp;~(NAND_BLOCK_MASK_LP));
+		return 0;
+	}
+}
+                </programlisting>
+                <para>可以看到，其有三个参数，start_addr，*buf和size，这三个参数，分别正好对应着我们刚才所总结的r0,r1和r2.</para>
+                <para>这些寄存器和参数的对应关系，也是APSC中定义的：</para>
+                <blockquote>
+                    <para>实际参数</para>
+                    <para>APCS 没有定义记录、数组、和类似的格局。这样语言可以自由的定义如何进行这些活动。但是，如果你自己的实现实际上不符合 APCS 的精神，那么将不允许来自你的编译器的代码与来自其他编译器的代码连接在一起。典型的，使用 C 语言的惯例。 </para>
+                    <itemizedlist>
+                        <listitem><emphasis>前4个整数实参(或者更少!)被装载到 a1 - a4</emphasis></listitem>
+                        <listitem>前 4 个浮点实参(或者更少!)被装载到 f0 - f3</listitem>
+                        <listitem>其他任何实参(如果有的话)存储在内存中，用进入函数时紧接在 sp 的值上面的字来指向。换句话说，其余的参数被压入栈顶。所以要想简单。最好定义接受 4 个或更少的参数的函数</listitem>
+                    </itemizedlist>
+                </blockquote>
+                <para>上面说的a1-a4,就是寄存器r0-r3。</para>
+                <para>而CopyCode2Ram函数的逻辑也很清晰，就是先去判断是从Nor Flash启动还是从Nand Flash启动，然后决定从哪里拷贝所需要的代码到对应的目标地址中。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+</sect1>

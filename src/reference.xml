@@ -1,0 +1,168 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<bibliography xmlns="http://docbook.org/ns/docbook"
+    xml:id="reference"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+
+<bibliomixed id="ref.embedsky_tq2440_src">
+  <bibliosource><ulink url="http://bbs.embedsky.net/viewthread.php?tid=859">2010年6月 最新TQ2440光盘下载 （Linux内核，WinCE的eboot，uboot均有更新）</ulink></bibliosource>
+  <author>embedsky</author>
+</bibliomixed>
+
+<bibliomixed id="ref.blobl_word_balignl">
+  <bibliosource><ulink url="http://re-eject.gbadev.org/files/GasARMRef.pdf">.globl,.word,.balignl的语法</ulink></bibliosource>
+  <author>gbadev</author>
+</bibliomixed>
+
+<bibliomixed id="ref.label_explanation">
+  <bibliosource><ulink url="http://sourceware.org/binutils/docs-2.20/as/Labels.html#Labels">label的解释</ulink></bibliosource>
+  <author>sourceware</author>
+</bibliomixed>
+
+<bibliomixed id="ref.ldr_syntax">
+  <bibliosource><ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.dui0206hc/DUI0206HC_rvct_linker_and_utilities_guide.pdf">ldr的语法</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.ldr_instruction">
+  <bibliosource><ulink url="http://wenku.baidu.com/view/f7cc280102020740be1e9bea.html">ldr指令</ulink></bibliosource>
+  <author>hx562047767 </author>
+</bibliomixed>
+
+<bibliomixed id="ref.ldr_instruction_2">
+  <bibliosource><ulink url="http://www.pczpg.com/a/2010/0607/11062.html">ldr指令</ulink></bibliosource>
+  <author>pczpg</author>
+</bibliomixed>
+
+<bibliomixed id="ref.dot_word_syntax">
+  <bibliosource><ulink url="http://blogold.chinaunix.net/u3/115924/showart_2280163.html">.word的语法</ulink></bibliosource>
+  <author>chinaunix</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm7_arch">
+  <bibliosource><ulink url="http://www.docin.com/p-73665362.html">ARM7体系结构</ulink></bibliosource>
+  <author>倒骑马</author>
+</bibliomixed>
+
+<bibliomixed id="ref.bootloader">
+  <bibliosource><ulink url="http://www.csie.nctu.edu.tw/~wjtsai/EmbeddedSystemDesign/Ch2-bootloader.pdf">bootloader</ulink></bibliosource>
+  <author>csie</author>
+</bibliomixed>
+
+<bibliomixed id="ref.s3c2440_related_material">
+  <bibliosource><ulink url="http://just4you.springnote.com/pages/1052612">S3C2440相关的软硬件资料</ulink></bibliosource>
+  <author>just4you</author>
+</bibliomixed>
+
+<bibliomixed id="ref.s3c2440_cpu_datasheet">
+  <bibliosource><ulink url="http://just4you.springnote.com/pages/1052612/attachments/803220">S3C2440的CPU的datasheet：s3c2440a_um_rev014_040712.pdf</ulink></bibliosource>
+  <author>just4you</author>
+</bibliomixed>
+
+<bibliomixed id="ref.fake_instr_ldr_syntax">
+  <bibliosource><ulink url="http://blog.csdn.net/lihaoweiV/archive/2010/11/24/6033003.aspx ">伪指令ldr语法和含义</ulink></bibliosource>
+  <author>liudapeng890</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm9_2410_interrupt">
+  <bibliosource><ulink url="http://www.crifan.com/switch_arm9_2410_transplant_arm_interrupt_principle_the_error_interrupt_nesting_how_come_the_interrupt_number/">ARM9 2410移植之ARM中断原理, 中断嵌套的误区，中断号的怎么来的</ulink></bibliosource>
+  <author>尚观科技老师和同学生（刘勇，孙贺，聂强，聂大鹏 ，牛须乐，孙磊）共同创作
+</author>
+</bibliomixed>
+
+<bibliomixed id="ref.adr_syntax">
+  <bibliosource><ulink url="http://blog.mcuol.com/User/cdkfGao/article/8057_1.htm">adr指令的语法和含义</ulink></bibliosource>
+  <author>from network</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm_co_processor">
+  <bibliosource><ulink url="http://apps.hi.baidu.com/share/detail/32319228">ARM协处理器</ulink></bibliosource>
+  <author>wooder</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm920t">
+  <bibliosource><ulink url="http://infocenter.arm.com/help/topic/com.arm.doc.ddi0151c/ARM920T_TRM1_S.pdf">ARM920T</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.cp15_meaning">
+  <bibliosource><ulink url="http://www.heyrick.co.uk/assembler/coprocmnd.html">CP15的各个寄存器的含义解释</ulink></bibliosource>
+  <author>Richard Murray</author>
+</bibliomixed>
+
+<bibliomixed id="ref.icache_dcache">
+  <bibliosource><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0184b/Chdcfejb.html">Invalidate ICache and DCache</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.invalidate_tlb">
+  <bibliosource><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0184b/Chdifbjc.html">Invalidate TLB(s)</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.ctrl_reg">
+  <bibliosource><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0184b/Chdifbjc.html">Control register</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.domain_access_control">
+  <bibliosource><ulink url="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0151c/I273867.html">Domain access control</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm920t_7_mode">
+  <bibliosource><ulink url="http://www.docin.com/p-73665362.html">ARM920T的CPU的7种模式</ulink></bibliosource>
+  <author>倒骑马</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm_linux_kernel_boot">
+  <bibliosource><ulink url="http://www.arm.linux.org.uk/developer/booting.php">ARM Linux Kernel Boot Requirements</ulink></bibliosource>
+  <author>Russell King</author>
+</bibliomixed>
+
+<bibliomixed id="ref.watchdog">
+  <bibliosource><ulink url="http://wenku.baidu.com/view/e5cd52ff04a1b0717fd5dd27.html">嵌入式系统之WATCHDOG(看门狗)概述</ulink></bibliosource>
+  <author>吖吧呸</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm_pipeline_pc">
+  <bibliosource><ulink url="http://hi.baidu.com/istry/blog/item/f823e1438de0a71972f05d0f.html">ARM流水线和program counter(PC)的增量</ulink></bibliosource>
+  <author>istry</author>
+</bibliomixed>
+
+<bibliomixed id="ref.predeclared_reg_names">
+  <bibliosource><ulink url="http://www.keil.com/support/man/docs/armasm/armasm_ch03s03s01.htm">Predeclared register names</ulink></bibliosource>
+  <author>keil</author>
+</bibliomixed>
+
+<bibliomixed id="ref.predeclared_ext_reg_names">
+  <bibliosource><ulink url="http://www.keil.com/support/man/docs/armasm/armasm_ch03s03s02.htm">Predeclared extension register names</ulink></bibliosource>
+  <author>keil</author>
+</bibliomixed>
+
+<bibliomixed id="ref.predeclared_coprocessor_name">
+  <bibliosource><ulink url="http://www.keil.com/support/man/docs/armasm/armasm_ch03s03s03.htm">Predeclared coprocessor names</ulink></bibliosource>
+  <author>keil</author>
+</bibliomixed>
+
+<bibliomixed id="ref.mov_value_range">
+  <bibliosource><ulink url="http://blog.chinaunix.net/space.php?uid=20799298&amp;do=blog&amp;cuid=2055392">mov的操作数的取指范围</ulink></bibliosource>
+  <author>changyongID</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm_instrctions_set">
+  <bibliosource><ulink url="http://netwinder.osuosl.org/pub/netwinder/docs/arm/ARM7500FEvB_3.pdf">ARM Processor Instruction Set</ulink></bibliosource>
+  <author>arm</author>
+</bibliomixed>
+
+<bibliomixed id="ref.arm9_pc_pc_8">
+  <bibliosource><ulink url="http://blog.csdn.net/hamilton1/archive/2011/02/18/6192722.aspx">ARM9流水线PC=PC+8</ulink></bibliosource>
+  <author>tianyi</author>
+</bibliomixed>
+
+<bibliomixed id="ref.strange_behaviour_ldr">
+  <bibliosource><ulink url="http://stackoverflow.com/questions/2102921/strange-behaviour-of-ldr-pc-value">Strange behaviour of ldr [pc, #value]</ulink></bibliosource>
+  <author>KennyTM</author>
+</bibliomixed>
+
+</bibliography>

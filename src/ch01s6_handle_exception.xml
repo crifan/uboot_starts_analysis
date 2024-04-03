@@ -1,0 +1,577 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01s6_handle_exception">
+<title>异常中断处理</title>
+<abstract></abstract>
+
+<sect2 xml:id="macros_stmia"><title>macros stmia</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ *************************************************************************
+ *
+ * Interrupt handling
+ *
+ *************************************************************************
+ */
+
+@
+@ IRQ stack frame.
+@
+#define S_FRAME_SIZE	72
+<co id="co.s_num_macros" linkends="co.note.s_num_macros" />
+#define S_OLD_R0	68
+#define S_PSR		64
+#define S_PC		60
+#define S_LR		56
+#define S_SP		52
+
+#define S_IP		48
+#define S_FP		44
+#define S_R10		40
+#define S_R9		36
+#define S_R8		32
+#define S_R7		28
+#define S_R6		24
+#define S_R5		20
+#define S_R4		16
+#define S_R3		12
+#define S_R2		8
+#define S_R1		4
+#define S_R0		0
+
+#define MODE_SVC 0x13
+#define I_BIT	 0x80
+
+/*
+ * use bad_save_user_regs for abort/prefetch/undef/swi ...
+ * use irq_save_user_regs / irq_restore_user_regs for IRQ/FIQ handling
+ */
+	.macro<co id="co.macro" linkends="co.note.macro" />	bad_save_user_regs
+
+	sub	sp, sp, #S_FRAME_SIZE<co id="co.sub_fram_size" linkends="co.note.sub_fram_size" />
+	stmia<co id="co.stmia" linkends="co.note.stmia" />	sp, {r0 - r12}			@ Calling r0-r12
+	ldr	r2, _armboot_start  <co id="co.ldr_r2" linkends="co.note.ldr_r2" />  
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.s_num_macros" arearefs="co.s_num_macros" >
+                <para>此处很简单，只是一些宏定义而已。</para>
+                <para>后面用到的时候再解释。</para>
+            </callout>
+            <callout id="co.note.macro" arearefs="co.macro" >
+                <para>.macro和后面的.endm相对应，其语法是：</para>
+                <figure id="fg.macro_syntax" ><title>macro的语法</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/macro_syntax.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/macro_syntax.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>所以，此处就相当于一个无参数的宏bad_save_user_regs，也就相当于一个函数了。</para>
+            </callout>
+            <callout id="co.note.sub_fram_size" arearefs="co.sub_fram_size" >
+                <para>即</para>
+                <para><emphasis>sp</emphasis></para>
+                <para><emphasis>= sp- S_FRAME_SIZE</emphasis></para>
+                <para><emphasis>= sp - 72</emphasis></para>
+            </callout>
+            <callout id="co.note.stmia" arearefs="co.stmia" >
+                <para>stmia的语法为：</para>
+                <figure id="fg.ldm_stm_syntax" ><title>LDM/STM的语法</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/ldm_stm_syntax.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/ldm_stm_syntax.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>其中，条件域的具体含义如下：</para>
+                <figure id="fg.cond_format" ><title>条件码的含义</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/cond_format.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/cond_format.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>更具体的含义：</para>
+                <blockquote>
+                    <para>六、批量数据加载/存储指令ARM微处理器所支持批量数据加载/存储指令可以一次在一片连续的存储器单元和多个寄存器之间传送数据，批量加载指令用于将一片连续的存储器中的数据传送到多个寄存器，批量数据存储指令则完成相反的操作。常用的加载存储指令如下：</para>
+                    <para>LDM（或STM）指令</para>
+                    <para>LDM（或STM）指令的格式为：</para>
+                    <para>LDM（或STM）{条件}{类型} 基址寄存器{！}，寄存器列表{∧}</para>
+                    <para>LDM（或STM）指令用于从由基址寄存器所指示的一片连续存储器到寄存器列表所指示的多个寄存器之间传送数据，该指令的常见用途是将多个寄存器的内容入栈或出栈。</para>
+                    <para>其中，{类型}为以下几种情况：</para>
+                    <para>IA   每次传送后地址加1；</para>
+                    <para>IB   每次传送前地址加1；</para>
+                    <para>DA   每次传送后地址减1；</para>
+                    <para>DB   每次传送前地址减1；</para>
+                    <para>FD   满递减堆栈；</para>
+                    <para>ED   空递减堆栈；</para>
+                    <para>FA   满递增堆栈；</para>
+                    <para>EA   空递增堆栈；</para>
+                    <para>{！}为可选后缀，若选用该后缀，则当数据传送完毕之后，将最后的地址写入基址寄存器，否则基址寄存器的内容不改变。</para>
+                    <para>基址寄存器不允许为R15，寄存器列表可以为R0～R15的任意组合。</para>
+                    <para>{∧}为可选后缀，当指令为LDM且寄存器列表中包含R15，选用该后缀时表示：除了正常的数据传送之外，还将SPSR复制到CPSR。同时，该后缀还表示传入或传出的是用户模式下的寄存器，而不是当前模式下的寄存器。</para>
+                    <para>指令示例：</para>
+                    <para>STMFD  R13!，{R0，R4-R12，LR}        ；将寄存器列表中的寄存器（R0，R4到</para>
+                    <para>                                            R12，LR）存入堆栈。</para>
+                    <para>LDMFD  R13!，{R0，R4-R12，PC}        ；将堆栈内容恢复到寄存器（R0，R4到</para>
+                    <para>                                              R12，LR）。</para>
+                </blockquote>
+                <para>所以，此行的含义是，</para>
+                <para>将r0到r12的值，一个个地传送到对应的地址上，基地址是sp的值，传完一个，sp的值加4，一直到传送完为止。</para>
+                <para>此处，可见，前面那行代码：</para>
+                <para><emphasis>sp = sp - 72</emphasis></para>
+                <para>就是为此处传送r0到r12，共13个寄存器，地址空间需要13*4=72个字节，</para>
+                <para>即前面sp减去72，就是为了腾出空间，留此处将r0到r12的值，放到对应的位置的。</para>
+            </callout>
+            <callout id="co.note.ldr_r2" arearefs="co.ldr_r2" >
+                <para>此处的含义就是，将_armboot_start中的值，参考前面内容，即为_start,</para>
+                <para>而_start的值：</para>
+                <para>从 Nor Flash启动时：<emphasis>_stat=0</emphasis></para>
+                <para>relocate代码之后为：<emphasis>_start=TEXT_BASE=0x33D00000</emphasis></para>
+                <para>此处是已经relocate代码了，所以应该理解为后者，即<emphasis>_start=0x33D00000</emphasis></para>
+                <para>所以:</para>
+                <para><emphasis>r2=0x33D00000</emphasis></para>
+            </callout>           
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="cal_reg_value_and_store"><title>cal reg value and store</title>
+    <programlistingco>
+        <programlisting language="c" >
+	sub	r2, r2, #(CONFIG_STACKSIZE+CFG_MALLOC_LEN)<co id="co.sub_r2_malloc_len" linkends="co.note.sub_r2_malloc_len" />
+	sub	r2, r2, #(CFG_GBL_DATA_SIZE+8)  @ set base 2 words into abort stack<co id="co.gbl_data_size" linkends="co.note.gbl_data_size" />
+	ldmia	r2, {r2 - r3}			@ get pc, cpsr<co id="co.get_pc_cpsr" linkends="co.note.get_pc_cpsr" />
+	add	r0, sp, #S_FRAME_SIZE		@ restore sp_SVC<co id="co.s_frame_size" linkends="co.note.s_frame_size" />
+	add	r5, sp, #S_SP<co id="co.addr_s_sp" linkends="co.note.addr_s_sp" />
+	mov	r1, lr<co id="co.mov_r1_lr" linkends="co.note.mov_r1_lr" />
+	stmia	r5, {r0 - r3}			@ save sp_SVC, lr_SVC, pc, cpsr<co id="co.save_sp_svc" linkends="co.note.save_sp_svc" />
+	mov	r0, sp<co id="co.mov_r0_sp" linkends="co.note.mov_r0_sp" />
+	.endm<co id="co.endm" linkends="co.note.endm" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.sub_r2_malloc_len" arearefs="co.sub_r2_malloc_len" >
+                <para>此处：</para>
+                <para><emphasis>r2</emphasis></para>
+                <para>= r2 - ( CONFIG_STACKSIZE+CFG_MALLOC_LEN)</para>
+                <para>= r2 – (128*1024 + 256*1024)</para>
+                <para>= 0x33D00000 - 384KB</para>
+                <para><emphasis>= 0x33CA0000</emphasis></para>
+            </callout>
+            <callout id="co.note.gbl_data_size" arearefs="co.gbl_data_size" >
+                <para>此处：</para>
+                <para><emphasis>r2</emphasis></para>
+                <para>= r2 - (CFG_GBL_DATA_SIZE + 8)</para>
+                <para>= 0x33CA0000 – (128 + 8)</para>
+                <para><emphasis>= 0x33C9FF78</emphasis></para>
+            </callout>
+            <callout id="co.note.get_pc_cpsr" arearefs="co.get_pc_cpsr" >
+                <para>分别将地址为r2和r2+4的内容，即地址为<emphasis>0x33C9FF78</emphasis>和<emphasis>0x33C9FF7C</emphasis>中的内容，load载入给r2和r3寄存器。</para>
+            </callout>
+            <callout id="co.note.s_frame_size" arearefs="co.s_frame_size" >
+                <para>将sp的值，加上72，送给r0</para>
+            </callout>
+            <callout id="co.note.addr_s_sp" arearefs="co.addr_s_sp" >
+                <para>前面的定义是：</para>
+                <programlisting>#define S_SP		52</programlisting>
+                <para>所以此处就是将sp的值，加上52，送给r5</para>
+            </callout>
+            <callout id="co.note.mov_r1_lr" arearefs="co.mov_r1_lr" >
+                <para>将lr给r1</para>
+            </callout>
+            <callout id="co.note.save_sp_svc" arearefs="co.save_sp_svc" >
+                <para>然后将r0到r3中的内容，存储到地址为r5-r5+12中的位置去。</para>
+            </callout>
+            <callout id="co.note.mov_r0_sp" arearefs="co.mov_r0_sp" >
+                <para>将sp再赋值给r0</para>
+            </callout>
+            <callout id="co.note.endm" arearefs="co.endm" >
+                <para>结束宏bad_save_user_regs</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<para>此处虽然每行代码基本看懂了，但是到底此bad_save_user_regs函数是做什么的，还是不太清楚，有待以后慢慢深入理解。</para>
+
+<sect2 xml:id="irq_save_user_regs_irq_restore_user_regs"><title>irq_save_user_regs irq_restore_user_regs</title>
+    <programlistingco>
+        <programlisting language="c" >
+	.macro	irq_save_user_regs
+	sub	sp, sp, #S_FRAME_SIZE
+	stmia	sp, {r0 - r12}			@ Calling r0-r12
+	add     r8, sp, #S_PC
+	stmdb   r8, {sp, lr}^                   @ Calling SP, LR
+	str     lr, [r8, #0]                    @ Save calling PC
+	mrs     r6, spsr
+	str     r6, [r8, #4]                    @ Save CPSR
+	str     r0, [r8, #8]                    @ Save OLD_R0
+	mov	r0, sp
+	.endm
+
+	.macro	irq_restore_user_regs
+	ldmia	sp, {r0 - lr}^			@ Calling r0 - lr
+	mov	r0, r0
+	ldr	lr, [sp, #S_PC]			@ Get PC
+	add	sp, sp, #S_FRAME_SIZE
+	subs	pc, lr, #4			@ return &amp; move spsr_svc into cpsr
+	.endm
+<co id="co.two_macros" linkends="co.note.two_macros" />
+	.macro get_bad_stack
+	ldr	r13, _armboot_start		@ setup our mode stack
+	sub	r13, r13, #(CONFIG_STACKSIZE+CFG_MALLOC_LEN)
+	sub	r13, r13, #(CFG_GBL_DATA_SIZE+8) @ reserved a couple spots in abort stack
+	str	lr, [r13]			@ save caller lr / spsr
+	mrs	lr, spsr
+	str     lr, [r13, #4] 
+	mov	r13, #MODE_SVC			@ prepare SVC-Mode
+	@ msr	spsr_c, r13
+	msr	spsr, r13
+	mov	lr, pc
+	movs	pc, lr
+	.endm
+<co id="co.get_bad_stack" linkends="co.note.get_bad_stack" />
+	.macro get_irq_stack			@ setup IRQ stack
+	ldr	sp, IRQ_STACK_START
+	.endm
+<co id="co.get_irq_stack" linkends="co.note.get_irq_stack" />
+	.macro get_fiq_stack			@ setup FIQ stack
+	ldr	sp, FIQ_STACK_START
+	.endm
+<co id="co.get_fiq_stack" linkends="co.note.get_fiq_stack" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.two_macros" arearefs="co.two_macros" >
+                <para>上面两段代码，基本上和前面很类似，虽然每一行都容易懂，但是整个两个函数的意思，除了看其宏的名字irq_save_user_regs和irq_restore_user_regs，分别对应着中断中，保存和恢复用户模式寄存器，之外，其他的，个人目前还是没有太多了解。</para>
+            </callout>
+            <callout id="co.note.get_bad_stack" arearefs="co.get_bad_stack" >
+                <para>此处的get_bad_stack被后面undefined_instruction，software_interrupt等处调用，目前能理解的意思是，在出错的时候，获得对应的堆栈的值。</para>
+            </callout>
+            <callout id="co.note.get_irq_stack" arearefs="co.get_irq_stack" >
+                <para>此处的含义很好理解，就是把地址为IRQ_STACK_START中的值赋值给sp。</para>
+                <para>即获得IRQ的堆栈的起始地址。</para>
+                <para>而对于IRQ_STACK_START，是前面就提到过的<xref linkend="code_cpu_init" /></para>
+                <para>而此处，就是用到了，前面已经在cpu_init()中重新计算正确的值了。</para>
+                <para>即算出IRQ堆栈的起始地址，其算法很简单，就是：</para>
+                <programlisting>	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;</programlisting>
+                <para>即，先减去malloc预留的空间，和global data，即在</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\board\EmbedSky\board.c</filename></para>
+                <para>中定义的全局变量：</para>
+                <para>DECLARE_GLOBAL_DATA_PTR;</para>
+                <para>而此宏对应的值在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\include\asm-arm\global_data.h</filename></para>
+                <para>中：</para>
+                <programlisting>#define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("r8")</programlisting>
+                <para>即，用一个固定的寄存器r8来存放此结构体的指针。</para>
+                <tip>
+                    <para>这也对应着编译uboot的时候，你所看到的编译参数<emphasis>-ffixed-r8</emphasis></para>
+                </tip>
+                <para>此gd_t的结构体，不同体系结构，用的不一样。</para>
+                <para>而此处arm的平台中，gd_t的定义在同一文件中:</para>
+                <programlisting>
+typedef	struct	global_data {
+	bd_t		*bd;
+	unsigned long	flags;
+	unsigned long	baudrate;
+	unsigned long	have_console;	/* serial_init() was called */
+	unsigned long	reloc_off;	/* Relocation Offset */
+	unsigned long	env_addr;	/* Address  of Environment struct */
+	unsigned long	env_valid;	/* Checksum of Environment valid? */
+	unsigned long	fb_base;	/* base address of frame buffer */
+#ifdef CONFIG_VFD
+	unsigned char	vfd_type;	/* display type */
+#endif
+#if 0
+	unsigned long	cpu_clk;	/* CPU clock in Hz!		*/
+	unsigned long	bus_clk;
+	unsigned long	ram_size;	/* RAM size */
+	unsigned long	reset_status;	/* reset status register at boot */
+#endif
+	void		**jt;		/* jump table */
+} gd_t;
+                </programlisting>
+                <para>而此全局变量gd_t *gd会被其他很多文件所引用，详情自己去代码中找。</para>
+            </callout>
+            <callout id="co.note.get_fiq_stack" arearefs="co.get_fiq_stack" >
+                <para>此处和上面类似，把地址为FIQ_STACK_START中的内容，给sp。</para>
+                <para>其中：</para>
+                <programlisting>	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;</programlisting>
+                <para>即FIQ的堆栈起始地址，是IRQ堆栈起始地址减去IRQ堆栈的大小。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="exception_handlers"><title>exception handlers</title>
+    <programlistingco>
+        <programlisting language="c" >
+/*
+ * exception handlers
+ */
+	.align  5
+undefined_instruction:<co id="co.undefined_instruction" linkends="co.note.undefined_instruction" />
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_undefined_instruction
+	.align	5
+    
+
+software_interrupt:
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_software_interrupt
+
+	.align	5
+prefetch_abort:
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_prefetch_abort
+
+	.align	5
+data_abort:
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_data_abort
+
+	.align	5
+not_used:
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_not_used
+<co id="co.other_several_macros" linkends="co.note.other_several_macros" />
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.undefined_instruction" arearefs="co.undefined_instruction" >
+                <para>如果发生未定义指令异常，CPU会掉转到start.S开头中对应的位置：</para>
+                <programlisting>	ldr	pc, _undefined_instruction</programlisting>
+                <para>即把地址为_undefined_instruction中的内容给pc，即跳转到此处执行对应的代码。</para>
+                <para>其做的事情依次是：</para>
+                <para><emphasis>获得出错时候的堆栈</emphasis></para>
+                <para><emphasis>保存用户模式寄存器</emphasis></para>
+                <para><emphasis>跳转到对应的函数：do_undefined_instruction</emphasis></para>
+                <para>而do_undefined_instruction函数是在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\cpu\arm920t\interrupts.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+void bad_mode (void)
+{
+	panic ("Resetting CPU ...\n");
+	reset_cpu (0);
+}
+
+void do_undefined_instruction (struct pt_regs *pt_regs)
+{
+	printf ("undefined instruction\n");
+	show_regs (pt_regs);
+	bad_mode ();
+}
+                </programlisting>
+                <para>可以看到，此处起始啥事没错，只是打印一下出错时候的寄存器的值，然后跳转到bad_mode中取reset CPU，直接重启系统了。</para>
+            </callout>
+            <callout id="co.note.other_several_macros" arearefs="co.other_several_macros" >
+                <para>以上几个宏，和前面的do_undefined_instruction是类似的，就不多说了。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="launch"><title>Launch</title>
+    <programlistingco>
+        <programlisting language="c" >
+@ HJ
+.globl Launch<co id="co.Launch" linkends="co.note.Launch" />
+    .align	4
+Launch:    
+    mov r7, r0
+    @ diable interrupt
+	@ disable watch dog timer
+	mov	r1, #0x53000000
+	mov	r2, #0x0
+	str	r2, [r1]
+
+    ldr r1,=INTMSK
+    ldr r2,=0xffffffff  @ all interrupt disable
+    str r2,[r1]
+
+    ldr r1,=INTSUBMSK
+    ldr r2,=0x7ff       @ all sub interrupt disable
+    str r2,[r1]
+
+    ldr     r1, = INTMOD
+    mov r2, #0x0        @ set all interrupt as IRQ (not FIQ)
+    str     r2, [r1]
+
+    @ 
+	mov	ip, #0
+	mcr	p15, 0, ip, c13, c0, 0      @	/* zero PID */
+	mcr	p15, 0, ip, c7, c7, 0       @	/* invalidate I,D caches */
+	mcr	p15, 0, ip, c7, c10, 4      @	/* drain write buffer */
+	mcr	p15, 0, ip, c8, c7, 0       @	/* invalidate I,D TLBs */
+	mrc	p15, 0, ip, c1, c0, 0       @	/* get control register */
+	bic	ip, ip, #0x0001             @	/* disable MMU */
+	mcr	p15, 0, ip, c1, c0, 0       @	/* write control register */
+
+    @ MMU_EnableICache
+    @mrc p15,0,r1,c1,c0,0
+    @orr r1,r1,#(1&lt;&lt;12)
+    @mcr p15,0,r1,c1,c0,0
+
+#ifdef CONFIG_SURPORT_WINCE
+    bl Wince_Port_Init
+#endif
+
+    @ clear SDRAM: the end of free mem(has wince on it now) to the end of SDRAM
+    ldr     r3, FREE_RAM_END
+    ldr     r4, =PHYS_SDRAM_1+PHYS_SDRAM_1_SIZE    @ must clear all the memory unused to zero
+    mov     r5, #0
+
+    ldr     r1, _armboot_start
+    ldr     r2, =On_Steppingstone
+    sub     r2, r2, r1
+    mov     pc, r2
+On_Steppingstone:
+2:  stmia   r3!, {r5}
+    cmp     r3, r4
+    bne     2b
+
+    @ set sp = 0 on sys mode
+    mov sp, #0
+
+    @ add by HJ, switch to SVC mode
+	msr	cpsr_c,	#0xdf	@ set the I-bit = 1, diable the IRQ interrupt
+	msr	cpsr_c,	#0xd3	@ set the I-bit = 1, diable the IRQ interrupt
+    ldr sp, =0x31ff5800	
+    
+    nop
+	nop
+    nop
+	nop
+
+	mov     pc, r7  @ Jump to PhysicalAddress
+	nop
+    mov pc, lr
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.Launch" arearefs="co.Launch" >
+                <para>此处相当于一个叫做Launch的函数，做了也是类似的系统初始化的动作。</para>
+                <para>但是没找到此函数在哪里被调用的。具体不太清楚。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="int_return"><title>int_return</title>
+    <programlistingco>
+        <programlisting language="c" >
+<co id="co.int_return" linkends="co.note.int_return" />
+#ifdef CONFIG_USE_IRQ
+	.align	5
+irq:
+/* add by www.embedsky.net to use IRQ for USB and DMA */
+	sub	lr, lr, #4			        @ the return address
+	ldr	sp, IRQ_STACK_START	        @ the stack for irq
+	stmdb	sp!, 	{ r0-r12,lr }	@ save registers
+	
+	ldr	lr,	=int_return		        @ set the return addr
+	ldr	pc, =IRQ_Handle<co id="co.irq_handle" linkends="co.note.irq_handle" />		        @ call the isr
+int_return:
+	ldmia	sp!, 	{ r0-r12,pc }^	@ return from interrupt
+	.align	5
+fiq:<co id="co.fiq" linkends="co.note.fiq" />
+	get_fiq_stack
+	/* someone ought to write a more effiction fiq_save_user_regs */
+	irq_save_user_regs
+	bl 	do_fiq<co id="co.do_fiq" linkends="co.note.do_fiq" />
+	irq_restore_user_regs
+#else
+<co id="co.else_part" linkends="co.note.else_part" />
+	.align	5
+irq:
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_irq
+
+	.align	5
+fiq:
+	get_bad_stack
+	bad_save_user_regs
+	bl 	do_fiq
+
+#endif
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.int_return" arearefs="co.int_return" >
+                <para>此处，做的事情，很容易看懂，就是中断发生后，掉转到这里，然后保存对应寄存器，然后跳转到对应irq函数IRQ_Handle中去。</para>
+                <para>但是前面为何sp为何去减去4，原因不太懂。</para>
+            </callout>
+            <callout id="co.note.irq_handle" arearefs="co.irq_handle" >
+                <para>关于IRQ_Handle，是在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\cpu\arm920t\s3c24x0\interrupts.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+void IRQ_Handle(void)
+{
+	unsigned long oft = intregs-&gt;INTOFFSET;
+	S3C24X0_GPIO * const gpio = S3C24X0_GetBase_GPIO();
+
+//	printk("IRQ_Handle: %d\n", oft);
+
+	//清中断
+	if( oft == 4 ) gpio-&gt;EINTPEND = 1&lt;&lt;7;	
+	intregs-&gt;SRCPND = 1&lt;&lt;oft;
+	intregs-&gt;INTPND	= intregs-&gt;INTPND;
+
+	/* run the isr */
+	isr_handle_array[oft]();
+}
+                </programlisting>
+                <para>此处细节就不多解释了，大体含义是，找到对应的中断源，然后调用对应的之前已经注册的中断服务函数ISR。</para>
+            </callout>
+            <callout id="co.note.fiq" arearefs="co.fiq" >
+                <para>此处也很简单，就是发生了快速中断FIQ的时候，保存IRQ的用户模式寄存器，然后调用函数do_fiq,调用完毕后，再恢复IRQ的用户模式寄存器。</para>
+            </callout>
+            <callout id="co.note.do_fiq" arearefs="co.do_fiq" >
+                <para>do_fiq()是在：</para>
+                <para><filename>u-boot-1.1.6_20100601\opt\EmbedSky\u-boot-1.1.6\cpu\arm920t\interrupts.c</filename></para>
+                <para>中：</para>
+                <programlisting>
+void do_fiq (struct pt_regs *pt_regs)
+{
+	printf ("fast interrupt request\n");
+	show_regs (pt_regs);
+	bad_mode ();
+}
+                </programlisting>
+                <para>和前面提到过的do_undefined_instruction的一样，就是打印寄存器信息，然后跳转到bad_mode()去重启CPU而已。</para>
+            </callout>
+            <callout id="co.note.else_part" arearefs="co.else_part" >
+                <para>此处就是，如果没有定义CONFIG_USE_IRQ，那么就用这段代码，可以看到，都只是直接调用do_irq和do_fiq，也没做什么实际工作。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+</sect1>

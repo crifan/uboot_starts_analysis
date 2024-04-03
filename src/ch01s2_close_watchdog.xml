@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<!DOCTYPE sect1
+[
+
+<!ENTITY % crl_ent PUBLIC "crl.ent" 'http://www.crifan.com/files/res/docbook/entity/crl.ent'>
+%crl_ent;
+
+]>
+
+<sect1 
+    xmlns="http://docbook.org/ns/docbook"
+    xmlns:xi="http://www.w3.org/2001/XInclude"
+    xmlns:xl="http://www.w3.org/1999/xlink"
+    
+    xml:id="ch01s2_close_watchdog">
+<title>关闭看门狗</title>
+
+<sect2 xml:id="pwtcon_intmod_intmsk_intsubmsk_clkdivn"><title>pWTCON INTMOD INTMSK INTSUBMSK CLKDIVN</title>
+    <programlistingco>
+        <programlisting language="c" >
+/* turn off the watchdog */
+#if defined(CONFIG_S3C2400)
+# define pWTCON		0x15300000
+# define INTMSK		0x14400008	/* Interupt-Controller base addresses */
+# define CLKDIVN	0x14800014	/* clock divisor register */
+#elif defined(CONFIG_S3C2410) || defined(CONFIG_S3C2440)<co id="co.some_macros" linkends="co.note.some_macros" />
+# define pWTCON		0x53000000
+# define INTMOD		0X4A000004
+# define INTMSK		0x4A000008	/* Interupt-Controller base addresses */
+# define INTSUBMSK	0x4A00001C
+# define CLKDIVN	0x4C000014	/* clock divisor register */
+#endif
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.some_macros" arearefs="co.some_macros" >
+                <para>上面几个宏定义所对应的地址，都可以在对应的datasheet中找到对应的定义：</para>
+                <para>其中，S3C2410和TQ2440开发板所用的CPU S3C2440，两者在这部分的寄存器定义，都是一样的，所以此处，采用CONFIG_S3C2410所对应的定义。</para>
+                <para>关于<emphasis>S3C2440相关的软硬件资料</emphasis>，这个网站提供的很全面：</para>
+                <para><ulink url="http://just4you.springnote.com/pages/1052612" /></para>
+                <para>其中有S3C2440的CPU的datasheet：</para>
+                <para><ulink url="s3c2440a_um_rev014_040712.pdf" /></para>
+                <para>其中有对应的寄存器定义： </para>
+                <figure id="fg.pwtcon" ><title>pWTCON</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/pwtcon.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/pwtcon.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <figure id="fg.intmod" ><title>INTMOD</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/intmod.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/intmod.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <figure id="fg.intmsk" ><title>INTMSK</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/intmsk.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/intmsk.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <figure id="fg.intsubmsk" ><title>INTSUBMSK</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/intsubmsk.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/intsubmsk.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <figure id="fg.clkdivn" ><title>CLKDIVN</title>
+                    <mediaobject>
+                        <imageobject role="html" >
+                            <imagedata fileref="images/clkdivn.png" align="left" scalefit="0" width="100%" />
+                        </imageobject>
+                        <imageobject role="fo" >
+                            <imagedata fileref="images/clkdivn.png" align="center" scalefit="1" width="100%" />
+                        </imageobject>
+                    </mediaobject>
+                </figure>
+                <para>而关于每个寄存器的具体含义，见后面的分析。</para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="ldr_pwtcon"><title>ldr pWTCON</title>
+    <programlistingco>
+        <programlisting language="c" >
+#if defined(CONFIG_S3C2400) || defined(CONFIG_S3C2410) || defined(CONFIG_S3C2440)
+	ldr<co id="co.ldr_pwtcon" linkends="co.note.ldr_pwtcon" />     r0, =pWTCON
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.ldr_pwtcon" arearefs="co.ldr_pwtcon" >
+                <para>这里的ldr和前面介绍的ldr指令不是一个意思。</para>
+                <para>这里的ldr是伪指令ldr。</para>
+                <tip><title>伪指令</title>
+                    <para>伪指令，就是“伪”的指令，是针对“真”的指令而言的。</para>
+                    <para>真的指令就是那些常见的指令，比如上面说的arm的ldr，bic，msr等等指令，是arm体系架构中真正存在的指令，你在arm汇编指令集中找得到对应的含义。</para>
+                    <para>而伪指令是写出来给汇编程序看的，汇编程序能看的伪指令具体表示的是啥意思，然后将其翻译成真正的指令或者进行相应的处理。</para>
+                    <para>伪指令ldr语法和含义：</para>
+                    <blockquote>
+                        <para><ulink url="http://blog.csdn.net/lihaoweiV/archive/2010/11/24/6033003.aspx " /></para>
+                        <para>另外还有一个就是ldr伪指令，虽然ldr伪指令和ARM的ldr指令很像，但是作用不太一样。ldr伪指令可以在立即数前加上=，以表示把一个地址写到某寄存器中，比如： </para>
+                        <para>ldr r0, =0x12345678</para>
+                        <para>这样，就把0x12345678这个地址写到r0中了。所以，ldr伪指令和mov是比较相似的。</para>
+                    </blockquote>
+                    <para>只不过mov指令后面的立即数是有限制的，这个立即数，能够<emphasis>必须由一个8位的二进制数，即属于0x00-0xFF内的某个值，经过偶数次右移后得到，这样才是合法数据</emphasis>，而ldr伪指令没有这个限制。</para>
+                    <para>那为何ldr伪指令的操作数没有限制呢，那是因为其是伪指令，写出来的伪指令，最终会被编译器解释成为真正的，合法的指令的，一般都是对应的mov指令。</para>
+                    <para>这样的话，写汇编程序的时候，使用MOV指令是比较麻烦的，因为有些简单的数据比较容易看出来，有些数据即不容易看出来是否是合法数据。所以，对此，ldr伪指令的出现，就是为了解决这个问题的，你只管放心用ldr伪指令，不用关心操作数，而写出的ldr伪指令，编译器会帮你翻译成对应的真正的汇编指令的。</para>
+                    <para>而关于编译器是如何将这些ldr伪指令翻译成为真正的汇编指令的，我的理解是，其自动会去算出来对应的操作数，是否是合法的mov 的操作数，如果是，就将该ldr伪指令翻译成mov指令，否则就用别的方式处理，我所观察到的，其中一种方式就是，单独申请一个4字节的空间用于存放操作数，然后用ldr指令实现。</para>
+                    <para>在uboot中，最后make完毕之后，会生产u-boot,</para>
+                    <para>通过:</para>
+                    <screen>arm-linux-objdump –d u-boot > dump_u-boot.txt</screen>
+                    <para>就可以把对应的汇编代码输出到该txt文件了，其中就能找到伪指令：</para>
+                    <screen>ldr     r0, =0x53000000</screen>
+                    <para>所对应的，真正的汇编代码：</para>
+                    <screen>33d00068:	e3a00453 	mov	r0, #1392508928	; 0x53000000</screen>
+                    <para>所以被翻译成了mov指令。</para>
+                    <para>而经过我的尝试，故意将0x53000000改为0x53000010，对应的生产的汇编代码为：</para>
+                    <screen>
+33d00068:	e59f0408 	ldr	r0, [pc, #1032]	; 33d00478 &lt;fiq+0x58&gt;
+......
+33d00478:	53000010 	.word	0x53000010
+                    </screen>
+                    <para>其中可以看到，由于0x53000010不是有效的mov的操作数，没法找到合适的0x00-0Xff去通过偶数次循环右移而得到，所以只能换成此处这种方式，即在另外申请一个word的空间用于存放这个值：</para>
+                    <screen>33d00478:	53000010 	.word	0x53000010</screen>
+                    <para>然后通过计算出相对当前PC的偏移，得到的地址，用ldr指令去除该地址中的值，即0x53000010，送给r0,比起mov指令，要复杂的多，也多消耗了一个word的空间。</para>
+                    <para>对应地，其他的方式，个人理解，好像也可以通过MVN指令来实现，具体细节，有待进一步探索。</para>
+                </tip>
+                <para>而这里的：</para>
+                <programlisting>ldr     r0, =pWTCON</programlisting>
+                <para>意思就很清楚了，就是把宏pWTCON的值赋值给r0寄存器，即</para>
+                <para><emphasis>r0=0x53000000</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="mov"><title>mov</title>
+    <programlistingco>
+        <programlisting language="c" >
+	mov<co id="co.mov" linkends="co.note.mov" />     r1, #0x0
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.mov" arearefs="co.mov" >
+                <para>mov指令语法：</para>
+                <blockquote>
+                    <para>1、    MOV指令</para>
+                    <para>MOV指令的格式为：</para>
+                    <para>MOV{条件}{S} 目的寄存器，源操作数</para>
+                    <para>MOV指令可完成从另一个寄存器、被移位的寄存器或将一个立即数加载到目的寄存器。其中S选项决定指令的操作是否影响CPSR中条件标志位的值，当没有S时指令不更新CPSR中条件标志位的值。</para>
+                    <para>指令示例：</para>
+                    <para>MOV R1，R0                        ；将寄存器R0的值传送到寄存器R1</para>
+                    <para>MOV PC，R14                       ；将寄存器R14的值传送到PC，常用于子程序返回</para>
+                    <para>MOV R1，R0，LSL＃3                ；将寄存器R0的值左移3位后传送到R1</para>
+                </blockquote>
+                <para>不过对于MOV指令多说一句，那就是，一般可以用类似于：</para>
+                <programlisting>MOV R0，R0</programlisting>
+                <para>的指令来实现NOP操作。</para>
+                <para>上面这句mov指令很简单，就是把0x0赋值给r1，即</para>
+                <para><emphasis>r1=0x0</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<sect2 xml:id="str"><title>str</title>
+    <programlistingco>
+        <programlisting language="c" >
+	str<co id="co.str" linkends="co.note.str" />     r1, [r0]
+        </programlisting>
+        <calloutlist>
+            <callout id="co.note.str" arearefs="co.str" >
+                <para>str指令语法：</para>
+                <blockquote>
+                    <para>4、STR指令</para>
+                    <para>STR指令的格式为：</para>
+                    <para>STR{条件} 源寄存器，&lt;存储器地址&gt;</para>
+                    <para>STR指令用于从源寄存器中将一个32位的字数据传送到存储器中。该指令在程序设计中比较常用，且寻址方式灵活多样，使用方式可参考指令LDR。</para>
+                    <para>指令示例：</para>
+                    <para>STR R0，[R1]，＃8            ；将R0中的字数据写入以R1为地址的存储器中，并</para>
+                    <para>                                 将新地址R1＋8写入R1。</para>
+                    <para>STR R0，[R1，＃8]            ；将R0中的字数据写入以R1＋8为地址的存储器中。</para>
+                </blockquote>
+                <para>所以这句str的作用也很简单，那就是将r1寄存器的值，传送到地址值为r0的（存储器）内存中。</para>
+                <para>用C语言表示就是：</para>
+                <para><emphasis>*r0 = r1</emphasis></para>
+            </callout>
+        </calloutlist>
+    </programlistingco>
+</sect2>
+
+<para>所以，上面几行代码意思也很清楚：</para>
+<para>先是用r0寄存器存pWTCON的值，然后r1=0，再将r1中的0写入到pWTCON中，其实就是</para>
+<screen>pWTCON = 0;</screen>
+<para>而pWTCON寄存器的具体含义是什么呢？下面就来了解其详细含义：</para>
+<figure id="fg.wtcon_reg_bits" ><title>WTCON寄存器的位域</title>
+    <mediaobject>
+        <imageobject role="html" >
+            <imagedata fileref="images/wtcon_reg_bits.jpg" align="left" scalefit="0" width="100%" />
+        </imageobject>
+        <imageobject role="fo" >
+            <imagedata fileref="images/wtcon_reg_bits.jpg" align="center" scalefit="1" width="100%" />
+        </imageobject>
+    </mediaobject>
+</figure>
+<para>注意到bit[0]是Reset Enable/Disable，而设置为0的话，那就是关闭Watchdog的reset了，所以其他位的配置选项，就更不需要看了。</para>
+<para>我们只需要了解，<emphasis>在此处禁止了看门狗WatchDog（的复位功能）</emphasis>，即可。</para>
+<para>关于看门狗的作用，以及为何要在系统初始化的时候关闭看门狗，请参见本文档后面的章节：<xref linkend="why_close_wdt" /></para>
+
+</sect1>
